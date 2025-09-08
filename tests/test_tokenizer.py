@@ -148,6 +148,17 @@ order by r.division desc, r.temporada desc, r.jornada desc, r.elocal
 		uppered = self.vpit.upper()
 		tokenized = " ".join([t.get_value(uppered) for t in tokenize(uppered)])
 		self.assertEqual(normalized, tokenized)
+	def test_delimiters(self):
+		sql = "1,"
+		values = [tok.get_value(sql=sql) for tok in tokenize(sql)]
+		self.assertEqual(["1",","], values)
+		sql = "(1,'2025-09-06', 2.56e41, 7)"
+		values = [(tok.get_value(sql=sql), tok.type == 2) for tok in tokenize(sql)]
+		self.assertEqual([("(", False),("1", True), (",", False), ("'2025-09-06'", False), (",", False), ("2.56e41", True), (",", False), ("7", True), (")", False)], values)
+
+class CurrentTest(unittest.TestCase):
+	pass
+
 
 if __name__ == '__main__':
 	unittest.main()

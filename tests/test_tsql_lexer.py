@@ -1,5 +1,5 @@
 import unittest
-from tsql_lexer import lex, TokenSubtype
+from tsql_lexer import lex, EnumTokenSubtype, EnumTokenType
 
 class TestTsqlLexser(unittest.TestCase):
 
@@ -45,18 +45,18 @@ class TestTsqlLexser(unittest.TestCase):
 
     def test_keyword_identifier(self):
         tokens  = [tok for tok in lex("select a where 1 = 1")]
-        self.assertEqual(tokens[0].type, 6)
-        self.assertEqual(tokens[1].type, 7)
-        self.assertEqual(tokens[2].type, 6)
-        self.assertNotIn(tokens[4].type, [6, 7])
+        self.assertEqual(tokens[0].type, EnumTokenType.KEYWORD)
+        self.assertEqual(tokens[1].type, EnumTokenType.IDENTIFIER)
+        self.assertEqual(tokens[2].type, EnumTokenType.KEYWORD)
+        self.assertNotIn(tokens[4].type, [EnumTokenType.KEYWORD, EnumTokenType.IDENTIFIER])
 
     def test_keyword_subtype(self):
         tokens  = [tok for tok in lex("left outer join #b group by case @var=field")]
-        self.assertEqual(tokens[0].subtype.value, TokenSubtype.RELATIONAL_OPERATORS.value)
-        self.assertEqual(tokens[1].subtype.value, TokenSubtype.TEMPORARY_OBJECT.value)
-        self.assertEqual(tokens[2].subtype.value, TokenSubtype.QUERY_CLAUSES.value)
-        self.assertEqual(tokens[3].subtype.value, TokenSubtype.FLOW_CONTROL.value)
-        self.assertEqual(tokens[4].subtype.value, TokenSubtype.VARIABLE.value)
+        self.assertEqual(tokens[0].subtype, EnumTokenSubtype.RELATIONAL_OPERATORS)
+        self.assertEqual(tokens[1].subtype, EnumTokenSubtype.TEMPORARY_OBJECT)
+        self.assertEqual(tokens[2].subtype, EnumTokenSubtype.QUERY_CLAUSES)
+        self.assertEqual(tokens[3].subtype, EnumTokenSubtype.FLOW_CONTROL)
+        self.assertEqual(tokens[4].subtype, EnumTokenSubtype.VARIABLE)
         self.assertFalse(hasattr(tokens[5], "subtype"))
         self.assertFalse(hasattr(tokens[6], "subtype"))
 

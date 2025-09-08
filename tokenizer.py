@@ -60,8 +60,8 @@ def tokenize(
 				i += 1
 				while i < n and text[i].isdigit(): i += 1
 
-			if text[i] not in('E,e'):
-				yield Token(start, i, type=2)
+			if text[i] not in('E','e'):
+				yield Token(start, i, type=NUMBER)
 			else:
 				i += 1
 				if text[i] in ('+', '-'):
