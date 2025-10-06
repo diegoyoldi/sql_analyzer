@@ -57,13 +57,10 @@ class TestTsqlLexser(unittest.TestCase):
         self.assertEqual(tokens[2].subtype, EnumTokenSubtype.QUERY_CLAUSES)
         self.assertEqual(tokens[3].subtype, EnumTokenSubtype.FLOW_CONTROL)
         self.assertEqual(tokens[4].subtype, EnumTokenSubtype.VARIABLE)
-        self.assertFalse(hasattr(tokens[5], "subtype"))
-        self.assertFalse(hasattr(tokens[6], "subtype"))
 
     def test_is_starter_keyword(self):
         tokens  = [tok for tok in lex("join b select set")]
         self.assertFalse(tokens[0].is_starter_keyword)
-        self.assertFalse(hasattr(tokens[1], "is_starter_keyword"))
         self.assertTrue(tokens[2].is_starter_keyword)
         self.assertTrue(tokens[3].is_starter_keyword)
 

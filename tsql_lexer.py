@@ -32,10 +32,14 @@ class EnumTokenSubtype(IntEnum):
 @dataclass
 class TSqlToken(tokenizer.Token):
 	value:str
+	subtype:EnumTokenSubtype
+	is_starter_keyword:bool	
 	def __init__(self, token:tokenizer.Token):
 		self.start = token.start
 		self.end = token.end
 		self.type = EnumTokenType(token.type)
+		self.subtype = None
+		self.is_starter_keyword = None
 	def __str__(self):
 		return self.value
 
@@ -72,10 +76,14 @@ KEYWORDS = frozenset({
 	, 'EXISTS', 'PRINT', 'WRITETEXT', 'EXIT', 'PROC'
 })
 
-STARTER_KEYWORDS = frozenset({
+STARTER_KEYWORDS_1 = frozenset({
 	'SELECT', 'UPDATE', 'INSERT', 'DELETE', 'MERGE', 'CREATE', 'DROP', 'TRUNCATE', 'ALTER', 'EXEC', 'EXECUTE', 
 	'DECLARE', 'SET', 'COMMIT', 'ROLLBACK', 'USE', 'GRANT', 'DENY', 'REVOKE', 'SAVE', 'BACKUP', 
 	'RESTORE', 'PRINT', 'GOTO', 'RETURN', 'IF', 'WHILE'
+})
+
+STARTER_KEYWORDS_2 = frozenset({
+	'BEGIN TRAN', 'BEGIN TRANSACTION', 'COMMIT TRAN', 'COMMIT TRANSACTION'
 })
 
 _KEYWORD_SUBTYPES_1 = {'SESSION_USER': EnumTokenSubtype.UNKNOWN, 'VIEW': EnumTokenSubtype.UNKNOWN, 'NOT': EnumTokenSubtype.UNKNOWN, 'TSEQUAL': EnumTokenSubtype.UNKNOWN, 'SECURITYAUDIT': EnumTokenSubtype.UNKNOWN, 'CONVERT': EnumTokenSubtype.UNKNOWN, 'BROWSE': EnumTokenSubtype.UNKNOWN, 'UNPIVOT': EnumTokenSubtype.UNKNOWN, 'ROWCOUNT': EnumTokenSubtype.UNKNOWN, 'RETURN': EnumTokenSubtype.FLOW_CONTROL, 'SEMANTICSIMILARITYDETAILSTABLE': EnumTokenSubtype.UNKNOWN, 'PROCEDURE': EnumTokenSubtype.UNKNOWN, 'DENY': EnumTokenSubtype.DCL, 'PIVOT': EnumTokenSubtype.UNKNOWN, 'AND': EnumTokenSubtype.UNKNOWN, 'TOP': EnumTokenSubtype.QUERY_CLAUSES, 'INTO': EnumTokenSubtype.UNKNOWN, 'SET': EnumTokenSubtype.OTHER_KEYWORDS, 'END': EnumTokenSubtype.UNKNOWN, 'CASE': EnumTokenSubtype.FLOW_CONTROL, 'CHECK': EnumTokenSubtype.UNKNOWN, 'COLUMN': EnumTokenSubtype.UNKNOWN, 'EXECUTE': EnumTokenSubtype.UNKNOWN, 'DISK': EnumTokenSubtype.UNKNOWN, 'MERGE': EnumTokenSubtype.DML, 'INNER': EnumTokenSubtype.UNKNOWN, 'NATIONAL': EnumTokenSubtype.UNKNOWN, 'ERRLVL': EnumTokenSubtype.UNKNOWN, 'TEXTSIZE': EnumTokenSubtype.UNKNOWN, 'DROP': EnumTokenSubtype.DDL, 'USER': EnumTokenSubtype.UNKNOWN, 'DBCC': EnumTokenSubtype.UNKNOWN, 'AS': EnumTokenSubtype.UNKNOWN, 'HAVING': EnumTokenSubtype.QUERY_CLAUSES, 'BACKUP': EnumTokenSubtype.UNKNOWN, 'WHEN': EnumTokenSubtype.UNKNOWN, 'CURRENT_TIME': EnumTokenSubtype.UNKNOWN, 'OPTION': EnumTokenSubtype.OTHER_KEYWORDS, 'SHUTDOWN': EnumTokenSubtype.UNKNOWN, 'CLOSE': EnumTokenSubtype.UNKNOWN, 'IDENTITY': EnumTokenSubtype.UNKNOWN, 'IS': EnumTokenSubtype.UNKNOWN, 'NOCHECK': EnumTokenSubtype.UNKNOWN, 'PRECISION': EnumTokenSubtype.UNKNOWN, 'FOR': EnumTokenSubtype.UNKNOWN, 'PUBLIC': EnumTokenSubtype.UNKNOWN, 'OR': EnumTokenSubtype.UNKNOWN, 'THEN': EnumTokenSubtype.UNKNOWN, 'FREETEXT': EnumTokenSubtype.UNKNOWN, 'CURSOR': EnumTokenSubtype.UNKNOWN, 'REFERENCES': EnumTokenSubtype.UNKNOWN, 'DECLARE': EnumTokenSubtype.OTHER_KEYWORDS, 'CURRENT_DATE': EnumTokenSubtype.UNKNOWN, 'FREETEXTTABLE': EnumTokenSubtype.UNKNOWN, 'CROSS': EnumTokenSubtype.UNKNOWN, 'TRIGGER': EnumTokenSubtype.UNKNOWN, 'CURRENT': EnumTokenSubtype.UNKNOWN, 'BETWEEN': EnumTokenSubtype.UNKNOWN, 'LIKE': EnumTokenSubtype.UNKNOWN, 'EXEC': EnumTokenSubtype.OTHER_KEYWORDS, 'GOTO': EnumTokenSubtype.FLOW_CONTROL, 'CONTINUE': EnumTokenSubtype.FLOW_CONTROL, 'ESCAPE': EnumTokenSubtype.UNKNOWN, 'NULLIF': EnumTokenSubtype.UNKNOWN, 'NONCLUSTERED': EnumTokenSubtype.UNKNOWN, 'FILE': EnumTokenSubtype.UNKNOWN, 'ON': EnumTokenSubtype.UNKNOWN, 'RECONFIGURE': EnumTokenSubtype.UNKNOWN, 'COMMIT': EnumTokenSubtype.TCL, 'COLLATE': EnumTokenSubtype.UNKNOWN, 'OVER': EnumTokenSubtype.UNKNOWN, 'SEMANTICSIMILARITYTABLE': EnumTokenSubtype.UNKNOWN, 'FETCH': EnumTokenSubtype.UNKNOWN, 'SEMANTICKEYPHRASETABLE': EnumTokenSubtype.UNKNOWN, 'TABLESAMPLE': EnumTokenSubtype.UNKNOWN, 'FILLFACTOR': EnumTokenSubtype.UNKNOWN, 'DATABASE': EnumTokenSubtype.UNKNOWN, 'DELETE': EnumTokenSubtype.DML, 'OPENDATASOURCE': EnumTokenSubtype.UNKNOWN, 'RESTORE': EnumTokenSubtype.UNKNOWN, 'IDENTITY_INSERT': EnumTokenSubtype.UNKNOWN, 'KILL': EnumTokenSubtype.UNKNOWN, 'INTERSECT': EnumTokenSubtype.SET_OPERATORS, 'GRANT': EnumTokenSubtype.DCL, 'CONTAINSTABLE': EnumTokenSubtype.UNKNOWN, 'FROM': EnumTokenSubtype.QUERY_CLAUSES, 'VALUES': EnumTokenSubtype.UNKNOWN, 'TRY_CONVERT': EnumTokenSubtype.UNKNOWN, 'EXIT': EnumTokenSubtype.UNKNOWN, 'DOUBLE': EnumTokenSubtype.UNKNOWN, 'CURRENT_TIMESTAMP': EnumTokenSubtype.UNKNOWN, 'PROC': EnumTokenSubtype.UNKNOWN, 'EXCEPT': EnumTokenSubtype.SET_OPERATORS, 'HOLDLOCK': EnumTokenSubtype.UNKNOWN, 'WHERE': EnumTokenSubtype.QUERY_CLAUSES, 'PLAN': EnumTokenSubtype.UNKNOWN, 'TABLE': EnumTokenSubtype.UNKNOWN, 'CONTAINS': EnumTokenSubtype.UNKNOWN, 'REVOKE': EnumTokenSubtype.DCL, 'REPLICATION': EnumTokenSubtype.UNKNOWN, 'ASC': EnumTokenSubtype.UNKNOWN, 'TRUNCATE': EnumTokenSubtype.DDL, 'IN': EnumTokenSubtype.SET_PREDICATE_OPERATORS, 'ADD': EnumTokenSubtype.UNKNOWN, 'READTEXT': EnumTokenSubtype.UNKNOWN, 'REVERT': EnumTokenSubtype.UNKNOWN, 'COALESCE': EnumTokenSubtype.UNKNOWN, 'USE': EnumTokenSubtype.OTHER_KEYWORDS, 'CURRENT_USER': EnumTokenSubtype.UNKNOWN, 'OPENQUERY': EnumTokenSubtype.UNKNOWN, 'LOAD': EnumTokenSubtype.UNKNOWN, 'OF': EnumTokenSubtype.UNKNOWN, 'DUMP': EnumTokenSubtype.UNKNOWN, 'LINENO': EnumTokenSubtype.UNKNOWN, 'EXISTS': EnumTokenSubtype.SET_PREDICATE_OPERATORS, 'OFF': EnumTokenSubtype.UNKNOWN, 'UNION': EnumTokenSubtype.SET_OPERATORS, 'DISTRIBUTED': EnumTokenSubtype.UNKNOWN, 'VARYING': EnumTokenSubtype.UNKNOWN, 'DESC': EnumTokenSubtype.UNKNOWN, 'SYSTEM_USER': EnumTokenSubtype.UNKNOWN, 'IF': EnumTokenSubtype.FLOW_CONTROL, 'ELSE': EnumTokenSubtype.FLOW_CONTROL, 'OPENXML': EnumTokenSubtype.UNKNOWN, 'SETUSER': EnumTokenSubtype.UNKNOWN, 'CLUSTERED': EnumTokenSubtype.UNKNOWN, 'WHILE': EnumTokenSubtype.FLOW_CONTROL, 'WITH': EnumTokenSubtype.OTHER_KEYWORDS, 'LEFT': EnumTokenSubtype.UNKNOWN, 'ROLLBACK': EnumTokenSubtype.TCL, 'WAITFOR': EnumTokenSubtype.UNKNOWN, 'SCHEMA': EnumTokenSubtype.UNKNOWN, 'DISTINCT': EnumTokenSubtype.UNKNOWN, 'BULK': EnumTokenSubtype.UNKNOWN, 'FUNCTION': EnumTokenSubtype.UNKNOWN, 'SAVE': EnumTokenSubtype.UNKNOWN, 'CONSTRAINT': EnumTokenSubtype.UNKNOWN, 'UPDATETEXT': EnumTokenSubtype.UNKNOWN, 'CASCADE': EnumTokenSubtype.UNKNOWN, 'FOREIGN': EnumTokenSubtype.UNKNOWN, 'OPEN': EnumTokenSubtype.UNKNOWN, 'ALL': EnumTokenSubtype.SET_PREDICATE_OPERATORS, 'BREAK': EnumTokenSubtype.FLOW_CONTROL, 'ROWGUIDCOL': EnumTokenSubtype.UNKNOWN, 'TRANSACTION': EnumTokenSubtype.UNKNOWN, 'UPDATE': EnumTokenSubtype.DML, 'ANY': EnumTokenSubtype.SET_PREDICATE_OPERATORS, 'BY': EnumTokenSubtype.UNKNOWN, 'ORDER': EnumTokenSubtype.UNKNOWN, 'EXTERNAL': EnumTokenSubtype.UNKNOWN, 'KEY': EnumTokenSubtype.UNKNOWN, 'TRAN': EnumTokenSubtype.UNKNOWN, 'OFFSETS': EnumTokenSubtype.UNKNOWN, 'RAISERROR': EnumTokenSubtype.UNKNOWN, 'SELECT': EnumTokenSubtype.QUERY_CLAUSES, 'CREATE': EnumTokenSubtype.DDL, 'GROUP': EnumTokenSubtype.UNKNOWN, 'FULL': EnumTokenSubtype.UNKNOWN, 'ALTER': EnumTokenSubtype.DDL, 'READ': EnumTokenSubtype.UNKNOWN, 'INSERT': EnumTokenSubtype.DML, 'BEGIN': EnumTokenSubtype.UNKNOWN, 'STATISTICS': EnumTokenSubtype.UNKNOWN, 'OUTER': EnumTokenSubtype.UNKNOWN, 'OPENROWSET': EnumTokenSubtype.UNKNOWN, 'SOME': EnumTokenSubtype.SET_PREDICATE_OPERATORS, 'RULE': EnumTokenSubtype.UNKNOWN, 'AUTHORIZATION': EnumTokenSubtype.UNKNOWN, 'PRINT': EnumTokenSubtype.OTHER_KEYWORDS, 'DEALLOCATE': EnumTokenSubtype.UNKNOWN, 'PERCENT': EnumTokenSubtype.UNKNOWN, 'RIGHT': EnumTokenSubtype.UNKNOWN, 'INDEX': EnumTokenSubtype.UNKNOWN, 'JOIN': EnumTokenSubtype.RELATIONAL_OPERATORS, 'PRIMARY': EnumTokenSubtype.UNKNOWN, 'UNIQUE': EnumTokenSubtype.UNKNOWN, 'WRITETEXT': EnumTokenSubtype.UNKNOWN, 'COMPUTE': EnumTokenSubtype.UNKNOWN, 'RESTRICT': EnumTokenSubtype.UNKNOWN, 'TO': EnumTokenSubtype.UNKNOWN, 'DEFAULT': EnumTokenSubtype.UNKNOWN, 'NULL': EnumTokenSubtype.UNKNOWN, 'CHECKPOINT': EnumTokenSubtype.UNKNOWN, 'IDENTITYCOL': EnumTokenSubtype.UNKNOWN}
@@ -148,12 +156,13 @@ def _flush_buffer(buf: list[TSqlToken]) -> Iterator[TSqlToken]:
 			buf[i].end = buf[i+1].end
 			buf[i].type = EnumTokenType.KEYWORD.value
 			buf[i].subtype = subtype[1]
+			buf[i].is_starter_keyword = buf[i].value in STARTER_KEYWORDS_2
 			del buf[i+1:i+2]
 		elif (subtype := _KEYWORD_SUBTYPES_1.get(buf[i].value.upper())) != None:
 			buf[i].value = buf[i].value.upper()
 			buf[i].type = EnumTokenType.KEYWORD.value
 			buf[i].subtype = subtype
-			buf[i].is_starter_keyword = buf[i].value in STARTER_KEYWORDS
+			buf[i].is_starter_keyword = buf[i].value in STARTER_KEYWORDS_1
 		i += 1
 
 	while buf:
