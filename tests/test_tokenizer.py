@@ -137,8 +137,10 @@ order by r.division desc, r.temporada desc, r.jornada desc, r.elocal
 		self.assertEqual([("['uno']]dos]", True), ("' [\n'']'", True), ("tres", False)], [(t.get_value(sql), (t.type==3)) for t in tokenize(sql)] )
 
 	def test_types(self):
-		sql = "identi 12.3e-45 [delimited literal] >= ,"
-		self.assertEqual([1,2,3,4,5], [t.type for t in tokenize(sql)] )
+		sql = "identi 12.3e-45 [delimited literal] >= < ,"
+		self.assertEqual([1,2,3,4,4,5], [t.type for t in tokenize(sql)] )
+		sql = "/*block comment*/ --line comment"
+		self.assertEqual([7,6], [t.type for t in tokenize(sql)] )
 
 	def test_code_integrity(self):
 		normalized = self.vpit.strip().upper()

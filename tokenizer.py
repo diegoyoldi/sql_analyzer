@@ -100,6 +100,6 @@ def tokenize(
 		if text[i:i+2] in operators2chars:
 			yield Token(i, i+2, type=OPERATOR); i += 2
 		elif c in operators1char:
-			yield Token(i, i+1, type=DELIMITER); i += 1
+			yield Token(i, i+1, type=OPERATOR); i += 1
 		else:
 			yield Token(i, i+1, type=DELIMITER); i += 1
