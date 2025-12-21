@@ -11,8 +11,10 @@ class EnumTokenType(IntEnum):
 	DELIMITED_LITERAL = 3
 	OPERATOR = 4
 	DELIMITER = 5	
-	KEYWORD = 6
-	IDENTIFIER = 7
+	LINE_COMMENT = 6
+	BLOCK_COMMENT = 7	
+	KEYWORD = 8
+	IDENTIFIER = 9
 	
 class EnumTokenSubtype(IntEnum):
 	UNKNOWN = 0
@@ -148,19 +150,19 @@ def _flush_buffer(buf: list[TSqlToken]) -> Iterator[TSqlToken]:
 		if pending >=3 and (subtype := _KEYWORD_SUBTYPES_3.get((buf[i].value.upper(), buf[i+1].value.upper(), buf[i+2].value.upper()))) != None:
 			buf[i].value = subtype[0]
 			buf[i].end = buf[i+2].end
-			buf[i].type = EnumTokenType.KEYWORD.value
+			buf[i].type = EnumTokenType.KEYWORD
 			buf[i].subtype = subtype[1]
 			del buf[i+1:i+3]
 		elif pending >= 2 and (subtype := _KEYWORD_SUBTYPES_2.get((buf[i].value.upper(), buf[i+1].value.upper()))) != None:
 			buf[i].value = subtype[0]
 			buf[i].end = buf[i+1].end
-			buf[i].type = EnumTokenType.KEYWORD.value
+			buf[i].type = EnumTokenType.KEYWORD
 			buf[i].subtype = subtype[1]
 			buf[i].is_starter_keyword = buf[i].value in STARTER_KEYWORDS_2
 			del buf[i+1:i+2]
 		elif (subtype := _KEYWORD_SUBTYPES_1.get(buf[i].value.upper())) != None:
 			buf[i].value = buf[i].value.upper()
-			buf[i].type = EnumTokenType.KEYWORD.value
+			buf[i].type = EnumTokenType.KEYWORD
 			buf[i].subtype = subtype
 			buf[i].is_starter_keyword = buf[i].value in STARTER_KEYWORDS_1
 		i += 1
@@ -168,7 +170,7 @@ def _flush_buffer(buf: list[TSqlToken]) -> Iterator[TSqlToken]:
 	while buf:
 		# Merge dotted identifiers
 		if buf[0].type == EnumTokenType.WORD.value:
-			buf[0].type = EnumTokenType.IDENTIFIER.value
+			buf[0].type = EnumTokenType.IDENTIFIER
 			c = buf[0].value[0]
 			if c == '@': buf[0].subtype = EnumTokenSubtype.VARIABLE
 			elif c == '#': buf[0].subtype = EnumTokenSubtype.TEMPORARY_OBJECT
