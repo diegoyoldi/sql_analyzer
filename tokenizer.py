@@ -90,10 +90,10 @@ def tokenize(
 
 		# Delimited literal
 		if c in delimited_constructs:
-			block_closing, i = delimited_constructs[c], i+1
+			literal_closing, i = delimited_constructs[c], i+1
 			while i < n:
-				if text[i] == block_closing and text[i+1:i+2] != block_closing: i += 1; break
-				i += 2 if text[i:i+2] == block_closing*2 else 1
+				if text[i] == literal_closing and text[i+1:i+2] != literal_closing: i += 1; break
+				i += 2 if text[i:i+2] == literal_closing*2 else 1
 			yield Token(start, i, type=DELIMITED_LITERAL); continue
 
 		# Operator / delimiter
