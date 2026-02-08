@@ -1,68 +1,69 @@
 import unittest
+import pytest
 from tsql_lexer import lex, EnumTokenSubtype, EnumTokenType
 
-class TestTsqlLexser(unittest.TestCase):
+@pytest.fixture
+def lexed_tokens(): return lambda query: [tok for tok in lex(query)]
 
-    def test_lex_keywords(self):
-        self.assertEqual([t.value for t in lex("left")], ["LEFT"])
-        self.assertEqual([t.value for t in lex("left join")], ["LEFT JOIN"])
-        self.assertEqual([t.value for t in lex("hello left join")], ["hello", "LEFT JOIN"])
-        self.assertEqual([t.value for t in lex("left outer")], ["LEFT", "OUTER"])
-        self.assertEqual([t.value for t in lex("left outer join")], ["LEFT OUTER JOIN"])
-        self.assertEqual([t.value for t in lex("left . join")], ["LEFT", ".", "JOIN"])
-        self.assertEqual([t.value for t in lex("left = join")], ["LEFT", "=", "JOIN"])
-        self.assertEqual([t.value for t in lex("left join t")], ["LEFT JOIN", "t"])
-        self.assertEqual([t.value for t in lex("left join t left join")], ["LEFT JOIN", "t", "LEFT JOIN"])
+@pytest.mark.parametrize("sql, expected",[
+    # Keywords
+    ("left", ["LEFT"]),
+    ("left join", ["LEFT JOIN"]),
+    ("hello left join", ["hello", "LEFT JOIN"]),
+    ("left outer", ["LEFT", "OUTER"]),
+    ("left outer join", ["LEFT OUTER JOIN"]),
+    ("left . join", ["LEFT", ".", "JOIN"]),
+    ("left = join", ["LEFT", "=", "JOIN"]),
+    ("left join t", ["LEFT JOIN", "t"]),
+    ("left join t left join", ["LEFT JOIN", "t", "LEFT JOIN"]),
+    # Identifiers
+    ("serv", ["serv"]),
+    ("serv.", ["serv", "."]),
+    ("serv.db", ["serv.db"]),
+    ("serv.db.", ["serv.db", "."]),
+    ("serv.db.dbo", ["serv.db.dbo"]),
+    ("serv.db.dbo.", ["serv.db.dbo", "."]),
+    ("serv.db.dbo.table1", ["serv.db.dbo.table1"]),
+    ("serv.db.dbo.table1.", ["serv.db.dbo.table1", "."]),
+    ("serv.db.dbo.table1..", ["serv.db.dbo.table1.."]),
+    ("serv.db.dbo.table1>.", ["serv.db.dbo.table1", ">", "."]),
+    ('[serv]."db".[dbo]."table1"', ['[serv]."db".[dbo]."table1"']),
+    # Keyword precedence
+    ("serv.db.dbo.join", ["serv.db.dbo", ".", "JOIN"]),
+    ("serv.db.dbo.join.", ["serv.db.dbo", ".", "JOIN", "."]),
+    ("serv.db.dbo.left.join.", ["serv.db.dbo", ".", "LEFT", ".", "JOIN", "."]),
+    ("serv.db.dbo.left join.", ["serv.db.dbo", ".", "LEFT JOIN", "."]),
+    ("tabla.within group", ["tabla", ".", "WITHIN GROUP"]),
+    #flush buffer
+    ("left outer join left outer join", ["LEFT OUTER JOIN", "LEFT OUTER JOIN"]),
+    ("left join t.a left join", ["LEFT JOIN", "t.a", "LEFT JOIN"]),
+])
+def test_tsql_lexer_keywords(sql, expected): assert [t.value for t in lex(sql)] == expected
 
-    def test_lex_identifiers(self):
-        self.assertEqual([t.value for t in lex("serv")], ["serv"])
-        self.assertEqual([t.value for t in lex("serv.")], ["serv", "."])
-        self.assertEqual([t.value for t in lex("serv.db")], ["serv.db"])
-        self.assertEqual([t.value for t in lex("serv.db.")], ["serv.db", "."])
-        self.assertEqual([t.value for t in lex("serv.db.dbo")], ["serv.db.dbo"])
-        self.assertEqual([t.value for t in lex("serv.db.dbo.")], ["serv.db.dbo", "."])
-        self.assertEqual([t.value for t in lex("serv.db.dbo.table1")], ["serv.db.dbo.table1"])
-        self.assertEqual([t.value for t in lex("serv.db.dbo.table1.")], ["serv.db.dbo.table1", "."])
-        self.assertEqual([t.value for t in lex("serv.db.dbo.table1..")], ["serv.db.dbo.table1.."])
-        self.assertEqual([t.value for t in lex("serv.db.dbo.table1>.")], ["serv.db.dbo.table1", ">", "."])
 
-    def test_keyword_precedence(self):
-        self.assertEqual([t.value for t in lex("serv.db.dbo.join")], ["serv.db.dbo", ".", "JOIN"])
-        self.assertEqual([t.value for t in lex("serv.db.dbo.join.")], ["serv.db.dbo", ".", "JOIN", "."])
-        self.assertEqual([t.value for t in lex("serv.db.dbo.left.join.")], ["serv.db.dbo", ".", "LEFT", ".", "JOIN", "."])
-        self.assertEqual([t.value for t in lex("serv.db.dbo.left join.")], ["serv.db.dbo", ".", "LEFT JOIN", "."])
-        self.assertEqual([t.value for t in lex("tabla.within group")], ["tabla", ".", "WITHIN GROUP"])
+def test_end():
+    tokens  = [tok for tok in lex("from   a left  outer   join b cross join c")]
+    assert tokens[1].end == 8
+    assert tokens[2].end == 27
+    assert tokens[4].end == 40
 
-    def test_flush_buffer(self):
-        self.assertEqual([t.value for t in lex("left outer join left outer join")], ["LEFT OUTER JOIN", "LEFT OUTER JOIN"])
-        self.assertEqual([t.value for t in lex("left join t.a left join")], ["LEFT JOIN", "t.a", "LEFT JOIN"])
+def test_keyword_identifier():
+    tokens  = [tok for tok in lex("select a where 1 = 1")]
+    assert tokens[0].type == EnumTokenType.KEYWORD
+    assert tokens[1].type == EnumTokenType.IDENTIFIER
+    assert tokens[2].type == EnumTokenType.KEYWORD
+    assert tokens[4].type not in [EnumTokenType.KEYWORD, EnumTokenType.IDENTIFIER]
 
-    def test_end(self):
-        tokens  = [tok for tok in lex("from   a left  outer   join b cross join c")]
-        self.assertEqual(tokens[1].end, 8)
-        self.assertEqual(tokens[2].end, 27)
-        self.assertEqual(tokens[4].end, 40)
+def test_keyword_subtype():
+    tokens  = [tok for tok in lex("left outer join #b group by case @var=field")]
+    assert tokens[0].subtype == EnumTokenSubtype.RELATIONAL_OPERATORS
+    assert tokens[1].subtype == EnumTokenSubtype.TEMPORARY_OBJECT
+    assert tokens[2].subtype == EnumTokenSubtype.QUERY_CLAUSES
+    assert tokens[3].subtype == EnumTokenSubtype.FLOW_CONTROL
+    assert tokens[4].subtype == EnumTokenSubtype.VARIABLE
 
-    def test_keyword_identifier(self):
-        tokens  = [tok for tok in lex("select a where 1 = 1")]
-        self.assertEqual(tokens[0].type, EnumTokenType.KEYWORD)
-        self.assertEqual(tokens[1].type, EnumTokenType.IDENTIFIER)
-        self.assertEqual(tokens[2].type, EnumTokenType.KEYWORD)
-        self.assertNotIn(tokens[4].type, [EnumTokenType.KEYWORD, EnumTokenType.IDENTIFIER])
-
-    def test_keyword_subtype(self):
-        tokens  = [tok for tok in lex("left outer join #b group by case @var=field")]
-        self.assertEqual(tokens[0].subtype, EnumTokenSubtype.RELATIONAL_OPERATORS)
-        self.assertEqual(tokens[1].subtype, EnumTokenSubtype.TEMPORARY_OBJECT)
-        self.assertEqual(tokens[2].subtype, EnumTokenSubtype.QUERY_CLAUSES)
-        self.assertEqual(tokens[3].subtype, EnumTokenSubtype.FLOW_CONTROL)
-        self.assertEqual(tokens[4].subtype, EnumTokenSubtype.VARIABLE)
-
-    def test_is_starter_keyword(self):
-        tokens  = [tok for tok in lex("join b select set")]
-        self.assertFalse(tokens[0].is_starter_keyword)
-        self.assertTrue(tokens[2].is_starter_keyword)
-        self.assertTrue(tokens[3].is_starter_keyword)
-
-if __name__ == '__main__':
-    unittest.main()    
+def test_is_starter_keyword():
+    tokens  = [tok for tok in lex("join b select set")]
+    assert tokens[0].is_starter_keyword == False
+    assert tokens[2].is_starter_keyword == True
+    assert tokens[3].is_starter_keyword == True
