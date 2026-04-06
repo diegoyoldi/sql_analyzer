@@ -1,96 +1,877 @@
 import string
-from dataclasses import dataclass
-from typing import Iterator, Dict, List
-import tokenizer
-from enum import IntEnum
+from typing import Iterator, List
+from tokenizer import Token, tokenize, EnumTokenType
+from enum import IntEnum, auto
 
-class EnumTokenType(IntEnum):
-	UNKNOWN = 0
-	WORD = 1
-	NUMBER = 2
-	DELIMITED_LITERAL = 3
-	OPERATOR = 4
-	DELIMITER = 5	
-	LINE_COMMENT = 6
-	BLOCK_COMMENT = 7	
-	KEYWORD = 8
-	IDENTIFIER = 9
+class EnumValueId(IntEnum):
+	RIGHT_OUTER_JOIN = auto()
+	LEFT_OUTER_JOIN = auto()
+	FULL_OUTER_JOIN = auto()
+	IS_NOT_NULL = auto()
+	INNER_JOIN = auto()
+	CROSS_JOIN = auto()
+	COMMIT_TRAN = auto()
+	ADD_CONSTRAINT = auto()
+	WITHIN_GROUP = auto()
+	BEGIN_TRAN = auto()
+	CROSS_APPLY = auto()
+	BEGIN_TRANSACTION = auto()
+	ROLLBACK_TRANSACTION = auto()
+	BEGIN_TRY = auto()
+	GROUP_BY = auto()
+	END_CATCH = auto()
+	FULL_JOIN = auto()
+	COMMIT_TRANSACTION = auto()
+	ADD_COLUMN = auto()
+	BEGIN_CATCH = auto()
+	LEFT_JOIN = auto()
+	ROLLBACK_TRAN = auto()
+	ORDER_BY = auto()
+	END_TRY = auto()
+	RIGHT_JOIN = auto()
+	OUTER_APPLY = auto()
+	IS_NULL = auto()
+	NOT_IN = auto()
+	NOT_BETWEEN = auto()
+	NOT_LIKE = auto()
+	NOT_EXISTS = auto()
+	SESSION_USER = auto()
+	VIEW = auto()
+	NOT = auto()
+	TSEQUAL = auto()
+	SECURITYAUDIT = auto()
+	CONVERT = auto()
+	BROWSE = auto()
+	UNPIVOT = auto()
+	ROWCOUNT = auto()
+	RETURN = auto()
+	SEMANTICSIMILARITYDETAILSTABLE = auto()
+	PROCEDURE = auto()
+	DENY = auto()
+	PIVOT = auto()
+	AND = auto()
+	TOP = auto()
+	INTO = auto()
+	SET = auto()
+	END = auto()
+	CASE = auto()
+	CHECK = auto()
+	COLUMN = auto()
+	EXECUTE = auto()
+	DISK = auto()
+	MERGE = auto()
+	INNER = auto()
+	NATIONAL = auto()
+	ERRLVL = auto()
+	TEXTSIZE = auto()
+	DROP = auto()
+	USER = auto()
+	DBCC = auto()
+	AS = auto()
+	HAVING = auto()
+	BACKUP = auto()
+	WHEN = auto()
+	CURRENT_TIME = auto()
+	OPTION = auto()
+	SHUTDOWN = auto()
+	CLOSE = auto()
+	IDENTITY = auto()
+	IS = auto()
+	NOCHECK = auto()
+	PRECISION = auto()
+	FOR = auto()
+	PUBLIC = auto()
+	OR = auto()
+	THEN = auto()
+	FREETEXT = auto()
+	REFERENCES = auto()
+	DECLARE = auto()
+	CURRENT_DATE = auto()
+	FREETEXTTABLE = auto()
+	CROSS = auto()
+	TRIGGER = auto()
+	CURRENT = auto()
+	BETWEEN = auto()
+	LIKE = auto()
+	EXEC = auto()
+	GOTO = auto()
+	CONTINUE = auto()
+	ESCAPE = auto()
+	NULLIF = auto()
+	NONCLUSTERED = auto()
+	FILE = auto()
+	ON = auto()
+	RECONFIGURE = auto()
+	COMMIT = auto()
+	COLLATE = auto()
+	OVER = auto()
+	SEMANTICSIMILARITYTABLE = auto()
+	FETCH = auto()
+	SEMANTICKEYPHRASETABLE = auto()
+	TABLESAMPLE = auto()
+	FILLFACTOR = auto()
+	DATABASE = auto()
+	DELETE = auto()
+	OPENDATASOURCE = auto()
+	RESTORE = auto()
+	IDENTITY_INSERT = auto()
+	KILL = auto()
+	INTERSECT = auto()
+	GRANT = auto()
+	CONTAINSTABLE = auto()
+	FROM = auto()
+	VALUES = auto()
+	TRY_CONVERT = auto()
+	EXIT = auto()
+	DOUBLE = auto()
+	CURRENT_TIMESTAMP = auto()
+	PROC = auto()
+	EXCEPT = auto()
+	HOLDLOCK = auto()
+	WHERE = auto()
+	PLAN = auto()
+	TABLE = auto()
+	CONTAINS = auto()
+	REVOKE = auto()
+	REPLICATION = auto()
+	ASC = auto()
+	TRUNCATE = auto()
+	IN = auto()
+	ADD = auto()
+	READTEXT = auto()
+	REVERT = auto()
+	COALESCE = auto()
+	USE = auto()
+	CURRENT_USER = auto()
+	OPENQUERY = auto()
+	LOAD = auto()
+	OF = auto()
+	DUMP = auto()
+	LINENO = auto()
+	EXISTS = auto()
+	OFF = auto()
+	UNION = auto()
+	DISTRIBUTED = auto()
+	VARYING = auto()
+	DESC = auto()
+	SYSTEM_USER = auto()
+	IF = auto()
+	ELSE = auto()
+	OPENXML = auto()
+	SETUSER = auto()
+	CLUSTERED = auto()
+	WHILE = auto()
+	WITH = auto()
+	LEFT = auto()
+	ROLLBACK = auto()
+	WAITFOR = auto()
+	SCHEMA = auto()
+	DISTINCT = auto()
+	BULK = auto()
+	FUNCTION = auto()
+	SAVE = auto()
+	CONSTRAINT = auto()
+	UPDATETEXT = auto()
+	CASCADE = auto()
+	FOREIGN = auto()
+	OPEN = auto()
+	ALL = auto()
+	BREAK = auto()
+	ROWGUIDCOL = auto()
+	TRANSACTION = auto()
+	UPDATE = auto()
+	ANY = auto()
+	BY = auto()
+	ORDER = auto()
+	EXTERNAL = auto()
+	KEY = auto()
+	TRAN = auto()
+	OFFSETS = auto()
+	RAISERROR = auto()
+	SELECT = auto()
+	CREATE = auto()
+	GROUP = auto()
+	FULL = auto()
+	ALTER = auto()
+	READ = auto()
+	INSERT = auto()
+	BEGIN = auto()
+	STATISTICS = auto()
+	OUTER = auto()
+	OPENROWSET = auto()
+	SOME = auto()
+	RULE = auto()
+	AUTHORIZATION = auto()
+	PRINT = auto()
+	DEALLOCATE = auto()
+	PERCENT = auto()
+	RIGHT = auto()
+	INDEX = auto()
+	JOIN = auto()
+	PRIMARY = auto()
+	UNIQUE = auto()
+	WRITETEXT = auto()
+	COMPUTE = auto()
+	RESTRICT = auto()
+	TO = auto()
+	DEFAULT = auto()
+	NULL = auto()
+	CHECKPOINT = auto()
+	IDENTITYCOL = auto()
+
+	#Not Keyword
+	WITHIN = auto()
+	APPLY = auto()
+	TRY = auto()
+	CATCH = auto()
+	PARTITION = auto()
+	ROW = auto()
+	ROWS = auto()
+	RANGE = auto()
+	UNBOUNDED = auto()
+	PRECEDING = auto()
+	FOLLOWING = auto()
+	PATH = auto()
+	AUTO = auto()
+	EXPLICIT = auto()
+	RAW = auto()
+	ABSENT = auto()
+	XSINIL = auto()
+	ELEMENTS = auto()
+	XMLSCHEMA = auto()
+	XMLDATA = auto()
+	ROOT = auto()
+	INCLUDE_NULL_VALUES = auto()
+	WITHOUT_ARRAY_WRAPPER = auto()
+	OPENJSON = auto()
+	BINARY = auto()
+	BASE64 = auto()
+	TYPE = auto()
+	OFFSET = auto()
+	ONLY = auto()
+	TIES = auto()
+	CAST = auto()
+	AVG = auto()
+	COUNT = auto()
+	SUM = auto()
+	MIN = auto()
+	MAX = auto()
+
+	# Data types - Exact
+	TINYINT = auto()
+	SMALLINT = auto()
+	INT = auto()
+	BIGINT = auto()
+	BIT = auto()
+	DECIMAL = auto()
+	NUMERIC = auto()
+	MONEY = auto()
+	SMALLMONEY = auto()
+
+	# Data types - Approximate
+	FLOAT = auto()
+	REAL = auto()
+
+	# Data types - Date and time
+	DATE = auto()
+	TIME = auto()
+	DATETIME2 = auto()
+	DATETIMEOFFSET = auto()
+	DATETIME = auto()
+	SMALLDATETIME = auto()
+
+	# Data types - Character string
+	CHAR = auto()
+	VARCHAR = auto()
+	TEXT = auto()
+
+	# Data types - Unicode character string
+	NCHAR = auto()
+	NVARCHAR = auto()
+	NTEXT = auto()
+
+	# Data types - Binary strings
+	# BINARY = auto()
+	VARBINARY = auto()
+	IMAGE = auto()
+
+	# Data types - Other data types
+	CURSOR = auto()
+	GEOGRAPHY = auto()
+	GEOMETRY = auto()
+	HIERARCHYID = auto()
+	JSON = auto()
+	VECTOR = auto()
+	ROWVERSION = auto()
+	SQL_VARIANT = auto()
+	# TABLE = auto()
+	UNIQUEIDENTIFIER = auto()
+	XML = auto()
+
+	# Comparision
+	EQ = auto()
+	NE = auto()
+	GT = auto()
+	GE = auto()
+	LT = auto()
+	LE = auto()
 	
-class EnumTokenSubtype(IntEnum):
-	UNKNOWN = 0
-	QUERY_CLAUSES = 1
-	SET_OPERATORS = 2
-	RELATIONAL_OPERATORS = 3
-	SET_PREDICATE_OPERATORS = 4
-	DDL = 5
-	DML = 6
-	TCL = 7
-	DCL = 8
-	FLOW_CONTROL = 9
-	OTHER_KEYWORDS = 10
-	VARIABLE = 11
-	TEMPORARY_OBJECT = 12
-	
-@dataclass
-class TSqlToken(tokenizer.Token):
-	value:str
-	subtype:EnumTokenSubtype
-	is_starter_keyword:bool	
-	def __init__(self, token:tokenizer.Token):
-		self.start = token.start
-		self.end = token.end
-		self.type = EnumTokenType(token.type)
-		self.subtype = None
-		self.is_starter_keyword = None
-	def __str__(self):
-		return self.value
+	# Arithmetic
+	OP_ADD = auto()
+	OP_SUB = auto()
+	OP_MUL = auto()
+	OP_DIV = auto()
+	OP_MOD = auto()
+	# Parentheses
+	PARENTH_1 = auto()
+	PARENTH_2 = auto()
 
-KEYWORDS = frozenset({
-	'ADD', 'EXTERNAL', 'PROCEDURE', 'ALL', 'FETCH', 'PUBLIC', 'ALTER'
-	, 'FILE', 'RAISERROR', 'AND', 'FILLFACTOR', 'READ', 'ANY', 'FOR'
-	, 'READTEXT', 'AS', 'FOREIGN', 'RECONFIGURE', 'ASC', 'FREETEXT'
-	, 'REFERENCES', 'AUTHORIZATION', 'FREETEXTTABLE', 'REPLICATION'
-	, 'BACKUP', 'FROM', 'RESTORE', 'BEGIN', 'FULL', 'RESTRICT', 'BETWEEN'
-	, 'FUNCTION', 'RETURN', 'BREAK', 'GOTO', 'REVERT', 'BROWSE', 'GRANT'
-	, 'REVOKE', 'BULK', 'GROUP', 'RIGHT', 'BY', 'HAVING', 'ROLLBACK'
-	, 'CASCADE', 'HOLDLOCK', 'ROWCOUNT', 'CASE', 'IDENTITY', 'ROWGUIDCOL'
-	, 'CHECK', 'IDENTITY_INSERT', 'RULE', 'CHECKPOINT', 'IDENTITYCOL'
-	, 'SAVE', 'CLOSE', 'IF', 'SCHEMA', 'CLUSTERED', 'IN', 'SECURITYAUDIT'
-	, 'COALESCE', 'INDEX', 'SELECT', 'COLLATE', 'INNER', 'SEMANTICKEYPHRASETABLE'
-	, 'COLUMN', 'INSERT', 'SEMANTICSIMILARITYDETAILSTABLE', 'COMMIT', 'INTERSECT'
-	, 'SEMANTICSIMILARITYTABLE', 'COMPUTE', 'INTO', 'SESSION_USER', 'CONSTRAINT'
-	, 'IS', 'SET', 'CONTAINS', 'JOIN', 'SETUSER', 'CONTAINSTABLE', 'KEY'
-	, 'SHUTDOWN', 'CONTINUE', 'KILL', 'SOME', 'CONVERT', 'LEFT', 'STATISTICS'
-	, 'CREATE', 'LIKE', 'SYSTEM_USER', 'CROSS', 'LINENO', 'TABLE', 'CURRENT'
-	, 'LOAD', 'TABLESAMPLE', 'CURRENT_DATE', 'MERGE', 'TEXTSIZE'
-	, 'CURRENT_TIME', 'NATIONAL', 'THEN', 'CURRENT_TIMESTAMP', 'NOCHECK'
-	, 'TO', 'CURRENT_USER', 'NONCLUSTERED', 'TOP', 'CURSOR'
-	, 'NOT', 'TRAN', 'DATABASE', 'NULL', 'TRANSACTION', 'DBCC', 'NULLIF'
-	, 'TRIGGER', 'DEALLOCATE', 'OF', 'TRUNCATE', 'DECLARE', 'OFF'
-	, 'TRY_CONVERT', 'DEFAULT', 'OFFSETS', 'TSEQUAL', 'DELETE', 'ON'
-	, 'UNION', 'DENY', 'OPEN', 'UNIQUE', 'DESC', 'OPENDATASOURCE', 'UNPIVOT'
-	, 'DISK', 'OPENQUERY', 'UPDATE', 'DISTINCT', 'OPENROWSET', 'UPDATETEXT'
-	, 'DISTRIBUTED', 'OPENXML', 'USE', 'DOUBLE', 'OPTION', 'USER', 'DROP'
-	, 'OR', 'VALUES', 'DUMP', 'ORDER', 'VARYING', 'ELSE', 'OUTER', 'VIEW'
-	, 'END', 'OVER', 'WAITFOR', 'ERRLVL', 'PERCENT', 'WHEN', 'ESCAPE', 'PIVOT'
-	, 'WHERE', 'EXCEPT', 'PLAN', 'WHILE', 'EXEC', 'PRECISION', 'WITH', 'EXECUTE'
-	, 'PRIMARY'#, 'WITHIN GROUP'
-	, 'EXISTS', 'PRINT', 'WRITETEXT', 'EXIT', 'PROC'
+	# Bitwise
+	BW_AND = auto()
+	BW_OR = auto()
+	BW_XOR = auto()
+	BW_NOT = auto()
+
+	# Delimiters
+	SEMICOLON = auto()
+	COMMA = auto()
+	DOT = auto()
+
+value_hash = {
+	'SESSION_USER': EnumValueId.SESSION_USER,
+	'VIEW': EnumValueId.VIEW,
+	'NOT': EnumValueId.NOT,
+	'TSEQUAL': EnumValueId.TSEQUAL,
+	'SECURITYAUDIT': EnumValueId.SECURITYAUDIT,
+	'CONVERT': EnumValueId.CONVERT,
+	'BROWSE': EnumValueId.BROWSE,
+	'UNPIVOT': EnumValueId.UNPIVOT,
+	'ROWCOUNT': EnumValueId.ROWCOUNT,
+	'RETURN': EnumValueId.RETURN,
+	'SEMANTICSIMILARITYDETAILSTABLE': EnumValueId.SEMANTICSIMILARITYDETAILSTABLE,
+	'PROCEDURE': EnumValueId.PROCEDURE,
+	'DENY': EnumValueId.DENY,
+	'PIVOT': EnumValueId.PIVOT,
+	'AND': EnumValueId.AND,
+	'TOP': EnumValueId.TOP,
+	'INTO': EnumValueId.INTO,
+	'SET': EnumValueId.SET,
+	'END': EnumValueId.END,
+	'CASE': EnumValueId.CASE,
+	'CHECK': EnumValueId.CHECK,
+	'COLUMN': EnumValueId.COLUMN,
+	'EXECUTE': EnumValueId.EXECUTE,
+	'DISK': EnumValueId.DISK,
+	'MERGE': EnumValueId.MERGE,
+	'INNER': EnumValueId.INNER,
+	'NATIONAL': EnumValueId.NATIONAL,
+	'ERRLVL': EnumValueId.ERRLVL,
+	'TEXTSIZE': EnumValueId.TEXTSIZE,
+	'DROP': EnumValueId.DROP,
+	'USER': EnumValueId.USER,
+	'DBCC': EnumValueId.DBCC,
+	'AS': EnumValueId.AS,
+	'HAVING': EnumValueId.HAVING,
+	'BACKUP': EnumValueId.BACKUP,
+	'WHEN': EnumValueId.WHEN,
+	'CURRENT_TIME': EnumValueId.CURRENT_TIME,
+	'OPTION': EnumValueId.OPTION,
+	'SHUTDOWN': EnumValueId.SHUTDOWN,
+	'CLOSE': EnumValueId.CLOSE,
+	'IDENTITY': EnumValueId.IDENTITY,
+	'IS': EnumValueId.IS,
+	'NOCHECK': EnumValueId.NOCHECK,
+	'PRECISION': EnumValueId.PRECISION,
+	'FOR': EnumValueId.FOR,
+	'PUBLIC': EnumValueId.PUBLIC,
+	'OR': EnumValueId.OR,
+	'THEN': EnumValueId.THEN,
+	'FREETEXT': EnumValueId.FREETEXT,
+	'CURSOR': EnumValueId.CURSOR,
+	'REFERENCES': EnumValueId.REFERENCES,
+	'DECLARE': EnumValueId.DECLARE,
+	'CURRENT_DATE': EnumValueId.CURRENT_DATE,
+	'FREETEXTTABLE': EnumValueId.FREETEXTTABLE,
+	'CROSS': EnumValueId.CROSS,
+	'TRIGGER': EnumValueId.TRIGGER,
+	'CURRENT': EnumValueId.CURRENT,
+	'BETWEEN': EnumValueId.BETWEEN,
+	'LIKE': EnumValueId.LIKE,
+	'EXEC': EnumValueId.EXEC,
+	'GOTO': EnumValueId.GOTO,
+	'CONTINUE': EnumValueId.CONTINUE,
+	'ESCAPE': EnumValueId.ESCAPE,
+	'NULLIF': EnumValueId.NULLIF,
+	'NONCLUSTERED': EnumValueId.NONCLUSTERED,
+	'FILE': EnumValueId.FILE,
+	'ON': EnumValueId.ON,
+	'RECONFIGURE': EnumValueId.RECONFIGURE,
+	'COMMIT': EnumValueId.COMMIT,
+	'COLLATE': EnumValueId.COLLATE,
+	'OVER': EnumValueId.OVER,
+	'SEMANTICSIMILARITYTABLE': EnumValueId.SEMANTICSIMILARITYTABLE,
+	'FETCH': EnumValueId.FETCH,
+	'SEMANTICKEYPHRASETABLE': EnumValueId.SEMANTICKEYPHRASETABLE,
+	'TABLESAMPLE': EnumValueId.TABLESAMPLE,
+	'FILLFACTOR': EnumValueId.FILLFACTOR,
+	'DATABASE': EnumValueId.DATABASE,
+	'DELETE': EnumValueId.DELETE,
+	'OPENDATASOURCE': EnumValueId.OPENDATASOURCE,
+	'RESTORE': EnumValueId.RESTORE,
+	'IDENTITY_INSERT': EnumValueId.IDENTITY_INSERT,
+	'KILL': EnumValueId.KILL,
+	'INTERSECT': EnumValueId.INTERSECT,
+	'GRANT': EnumValueId.GRANT,
+	'CONTAINSTABLE': EnumValueId.CONTAINSTABLE,
+	'FROM': EnumValueId.FROM,
+	'VALUES': EnumValueId.VALUES,
+	'TRY_CONVERT': EnumValueId.TRY_CONVERT,
+	'EXIT': EnumValueId.EXIT,
+	'DOUBLE': EnumValueId.DOUBLE,
+	'CURRENT_TIMESTAMP': EnumValueId.CURRENT_TIMESTAMP,
+	'PROC': EnumValueId.PROC,
+	'EXCEPT': EnumValueId.EXCEPT,
+	'HOLDLOCK': EnumValueId.HOLDLOCK,
+	'WHERE': EnumValueId.WHERE,
+	'PLAN': EnumValueId.PLAN,
+	'TABLE': EnumValueId.TABLE,
+	'CONTAINS': EnumValueId.CONTAINS,
+	'REVOKE': EnumValueId.REVOKE,
+	'REPLICATION': EnumValueId.REPLICATION,
+	'ASC': EnumValueId.ASC,
+	'TRUNCATE': EnumValueId.TRUNCATE,
+	'IN': EnumValueId.IN,
+	'ADD': EnumValueId.ADD,
+	'READTEXT': EnumValueId.READTEXT,
+	'REVERT': EnumValueId.REVERT,
+	'COALESCE': EnumValueId.COALESCE,
+	'USE': EnumValueId.USE,
+	'CURRENT_USER': EnumValueId.CURRENT_USER,
+	'OPENQUERY': EnumValueId.OPENQUERY,
+	'LOAD': EnumValueId.LOAD,
+	'OF': EnumValueId.OF,
+	'DUMP': EnumValueId.DUMP,
+	'LINENO': EnumValueId.LINENO,
+	'EXISTS': EnumValueId.EXISTS,
+	'OFF': EnumValueId.OFF,
+	'UNION': EnumValueId.UNION,
+	'DISTRIBUTED': EnumValueId.DISTRIBUTED,
+	'VARYING': EnumValueId.VARYING,
+	'DESC': EnumValueId.DESC,
+	'SYSTEM_USER': EnumValueId.SYSTEM_USER,
+	'IF': EnumValueId.IF,
+	'ELSE': EnumValueId.ELSE,
+	'OPENXML': EnumValueId.OPENXML,
+	'SETUSER': EnumValueId.SETUSER,
+	'CLUSTERED': EnumValueId.CLUSTERED,
+	'WHILE': EnumValueId.WHILE,
+	'WITH': EnumValueId.WITH,
+	'LEFT': EnumValueId.LEFT,
+	'ROLLBACK': EnumValueId.ROLLBACK,
+	'WAITFOR': EnumValueId.WAITFOR,
+	'SCHEMA': EnumValueId.SCHEMA,
+	'DISTINCT': EnumValueId.DISTINCT,
+	'BULK': EnumValueId.BULK,
+	'FUNCTION': EnumValueId.FUNCTION,
+	'SAVE': EnumValueId.SAVE,
+	'CONSTRAINT': EnumValueId.CONSTRAINT,
+	'UPDATETEXT': EnumValueId.UPDATETEXT,
+	'CASCADE': EnumValueId.CASCADE,
+	'FOREIGN': EnumValueId.FOREIGN,
+	'OPEN': EnumValueId.OPEN,
+	'ALL': EnumValueId.ALL,
+	'BREAK': EnumValueId.BREAK,
+	'ROWGUIDCOL': EnumValueId.ROWGUIDCOL,
+	'TRANSACTION': EnumValueId.TRANSACTION,
+	'UPDATE': EnumValueId.UPDATE,
+	'ANY': EnumValueId.ANY,
+	'BY': EnumValueId.BY,
+	'ORDER': EnumValueId.ORDER,
+	'EXTERNAL': EnumValueId.EXTERNAL,
+	'KEY': EnumValueId.KEY,
+	'TRAN': EnumValueId.TRAN,
+	'OFFSETS': EnumValueId.OFFSETS,
+	'RAISERROR': EnumValueId.RAISERROR,
+	'SELECT': EnumValueId.SELECT,
+	'CREATE': EnumValueId.CREATE,
+	'GROUP': EnumValueId.GROUP,
+	'FULL': EnumValueId.FULL,
+	'ALTER': EnumValueId.ALTER,
+	'READ': EnumValueId.READ,
+	'INSERT': EnumValueId.INSERT,
+	'BEGIN': EnumValueId.BEGIN,
+	'STATISTICS': EnumValueId.STATISTICS,
+	'OUTER': EnumValueId.OUTER,
+	'OPENROWSET': EnumValueId.OPENROWSET,
+	'SOME': EnumValueId.SOME,
+	'RULE': EnumValueId.RULE,
+	'AUTHORIZATION': EnumValueId.AUTHORIZATION,
+	'PRINT': EnumValueId.PRINT,
+	'DEALLOCATE': EnumValueId.DEALLOCATE,
+	'PERCENT': EnumValueId.PERCENT,
+	'RIGHT': EnumValueId.RIGHT,
+	'INDEX': EnumValueId.INDEX,
+	'JOIN': EnumValueId.JOIN,
+	'PRIMARY': EnumValueId.PRIMARY,
+	'UNIQUE': EnumValueId.UNIQUE,
+	'WRITETEXT': EnumValueId.WRITETEXT,
+	'COMPUTE': EnumValueId.COMPUTE,
+	'RESTRICT': EnumValueId.RESTRICT,
+	'TO': EnumValueId.TO,
+	'DEFAULT': EnumValueId.DEFAULT,
+	'NULL': EnumValueId.NULL,
+	'CHECKPOINT': EnumValueId.CHECKPOINT,
+	'IDENTITYCOL': EnumValueId.IDENTITYCOL,
+	'INNER JOIN': EnumValueId.INNER_JOIN,
+	'CROSS JOIN': EnumValueId.CROSS_JOIN,
+	'COMMIT TRAN': EnumValueId.COMMIT_TRAN,
+	'ADD CONSTRAINT': EnumValueId.ADD_CONSTRAINT,
+	'WITHIN GROUP': EnumValueId.WITHIN_GROUP,
+	'BEGIN TRAN': EnumValueId.BEGIN_TRAN,
+	'CROSS APPLY': EnumValueId.CROSS_APPLY,
+	'BEGIN TRANSACTION': EnumValueId.BEGIN_TRANSACTION,
+	'ROLLBACK TRANSACTION': EnumValueId.ROLLBACK_TRANSACTION,
+	'BEGIN TRY': EnumValueId.BEGIN_TRY,
+	'GROUP BY': EnumValueId.GROUP_BY,
+	'END CATCH': EnumValueId.END_CATCH,
+	'FULL JOIN': EnumValueId.FULL_JOIN,
+	'COMMIT TRANSACTION': EnumValueId.COMMIT_TRANSACTION,
+	'ADD COLUMN': EnumValueId.ADD_COLUMN,
+	'BEGIN CATCH': EnumValueId.BEGIN_CATCH,
+	'LEFT JOIN': EnumValueId.LEFT_JOIN,
+	'ROLLBACK TRAN': EnumValueId.ROLLBACK_TRAN,
+	'ORDER BY': EnumValueId.ORDER_BY,
+	'END TRY': EnumValueId.END_TRY,
+	'RIGHT JOIN': EnumValueId.RIGHT_JOIN,
+	'OUTER APPLY': EnumValueId.OUTER_APPLY,
+	'IS NULL': EnumValueId.IS_NULL,
+	'NOT IN': EnumValueId.NOT_IN,
+	'NOT BETWEEN': EnumValueId.NOT_BETWEEN,
+	'NOT LIKE': EnumValueId.NOT_LIKE,
+	'NOT EXISTS': EnumValueId.NOT_EXISTS,
+	'RIGHT OUTER JOIN': EnumValueId.RIGHT_OUTER_JOIN,
+	'LEFT OUTER JOIN': EnumValueId.LEFT_OUTER_JOIN,
+	'FULL OUTER JOIN': EnumValueId.FULL_OUTER_JOIN,
+	'IS NOT NULL': EnumValueId.IS_NOT_NULL,	
+	# Not Keyword
+	'WITHIN': EnumValueId.WITHIN,
+	'APPLY': EnumValueId.APPLY,
+	'TRY': EnumValueId.TRY,
+	'CATCH': EnumValueId.CATCH,
+	'PARTITION': EnumValueId.PARTITION,
+	'ROWS': EnumValueId.ROWS,
+	'ROW': EnumValueId.ROW,
+	'RANGE': EnumValueId.RANGE,
+	'UNBOUNDED': EnumValueId.UNBOUNDED,
+	'PRECEDING': EnumValueId.PRECEDING,
+	'FOLLOWING': EnumValueId.FOLLOWING,
+	'PATH': EnumValueId.PATH,
+	'AUTO': EnumValueId.AUTO,
+	'JSON': EnumValueId.JSON,
+	'EXPLICIT': EnumValueId.EXPLICIT,
+	'RAW': EnumValueId.RAW,
+	'XML': EnumValueId.XML,
+	'ABSENT': EnumValueId.ABSENT,
+	'XSINIL': EnumValueId.XSINIL,
+	'ELEMENTS': EnumValueId.ELEMENTS,
+	'XMLSCHEMA': EnumValueId.XMLSCHEMA,
+	'XMLDATA': EnumValueId.XMLDATA,
+	'ROOT': EnumValueId.ROOT,
+	'INCLUDE_NULL_VALUES': EnumValueId.INCLUDE_NULL_VALUES,
+	'WITHOUT_ARRAY_WRAPPER': EnumValueId.WITHOUT_ARRAY_WRAPPER,
+	'OPENJSON': EnumValueId.OPENJSON,
+	'BINARY': EnumValueId.BINARY,
+	'BASE64': EnumValueId.BASE64,
+	'TYPE': EnumValueId.TYPE,
+	'OFFSET': EnumValueId.OFFSET,
+	'ONLY': EnumValueId.ONLY,
+	'TIES': EnumValueId.TIES,
+	'CAST': EnumValueId.CAST,
+	'AVG': EnumValueId.AVG,
+	'COUNT': EnumValueId.COUNT,
+	'SUM': EnumValueId.SUM,
+	'MIN': EnumValueId.MIN,
+	'MAX': EnumValueId.MAX,
+	'TINYINT': EnumValueId.TINYINT,
+	'SMALLINT': EnumValueId.SMALLINT,
+	'INT': EnumValueId.INT,
+	'BIGINT': EnumValueId.BIGINT,
+	'BIT': EnumValueId.BIT,
+	'DECIMAL': EnumValueId.DECIMAL,
+	'NUMERIC': EnumValueId.NUMERIC,
+	'MONEY': EnumValueId.MONEY,
+	'SMALLMONEY': EnumValueId.SMALLMONEY,
+	'FLOAT': EnumValueId.FLOAT,
+	'REAL': EnumValueId.REAL,
+	'DATE': EnumValueId.DATE,
+	'TIME': EnumValueId.TIME,
+	'DATETIME2': EnumValueId.DATETIME2,
+	'DATETIMEOFFSET': EnumValueId.DATETIMEOFFSET,
+	'DATETIME': EnumValueId.DATETIME,
+	'SMALLDATETIME': EnumValueId.SMALLDATETIME,
+	'CHAR': EnumValueId.CHAR,
+	'VARCHAR': EnumValueId.VARCHAR,
+	'TEXT': EnumValueId.TEXT,
+	'NCHAR': EnumValueId.NCHAR,
+	'NVARCHAR': EnumValueId.NVARCHAR,
+	'NTEXT': EnumValueId.NTEXT,
+	'VARBINARY': EnumValueId.VARBINARY,
+	'IMAGE': EnumValueId.IMAGE,
+	'CURSOR': EnumValueId.CURSOR,
+	'GEOGRAPHY': EnumValueId.GEOGRAPHY,
+	'GEOMETRY': EnumValueId.GEOMETRY,
+	'HIERARCHYID': EnumValueId.HIERARCHYID,
+	'VECTOR': EnumValueId.VECTOR,
+	'ROWVERSION': EnumValueId.ROWVERSION,
+	'SQL_VARIANT': EnumValueId.SQL_VARIANT,
+	'UNIQUEIDENTIFIER': EnumValueId.UNIQUEIDENTIFIER,
+	'XML': EnumValueId.XML,
+	# Delimiters
+	'.': EnumValueId.DOT,
+	',': EnumValueId.COMMA,
+	';': EnumValueId.SEMICOLON,
+	'(': EnumValueId.PARENTH_1,
+	')': EnumValueId.PARENTH_2,
+	# Operators
+	'+': EnumValueId.OP_ADD,
+	'-': EnumValueId.OP_SUB, 
+	'*': EnumValueId.OP_MUL,
+	'/': EnumValueId.OP_DIV,
+	'%': EnumValueId.OP_MOD,
+	'>': EnumValueId.GT,
+	'<': EnumValueId.LT,
+	'=': EnumValueId.EQ,
+	'&': EnumValueId.BW_AND,
+	'|': EnumValueId.BW_OR,
+	'^': EnumValueId.BW_XOR,
+	'~': EnumValueId.BW_NOT,
+	'<>': EnumValueId.NE,
+	'>=': EnumValueId.GE,
+	'<=': EnumValueId.LE,
+}
+
+_KEYWORDS_1 = frozenset({
+    EnumValueId.SESSION_USER,
+    EnumValueId.VIEW,
+    EnumValueId.NOT,
+    EnumValueId.TSEQUAL,
+    EnumValueId.SECURITYAUDIT,
+    EnumValueId.CONVERT,
+    EnumValueId.BROWSE,
+    EnumValueId.UNPIVOT,
+    EnumValueId.ROWCOUNT,
+    EnumValueId.RETURN,
+    EnumValueId.SEMANTICSIMILARITYDETAILSTABLE,
+    EnumValueId.PROCEDURE,
+    EnumValueId.DENY,
+    EnumValueId.PIVOT,
+    EnumValueId.AND,
+    EnumValueId.TOP,
+    EnumValueId.INTO,
+    EnumValueId.SET,
+    EnumValueId.END,
+    EnumValueId.CASE,
+    EnumValueId.CHECK,
+    EnumValueId.COLUMN,
+    EnumValueId.EXECUTE,
+    EnumValueId.DISK,
+    EnumValueId.MERGE,
+    EnumValueId.INNER,
+    EnumValueId.NATIONAL,
+    EnumValueId.ERRLVL,
+    EnumValueId.TEXTSIZE,
+    EnumValueId.DROP,
+    EnumValueId.USER,
+    EnumValueId.DBCC,
+    EnumValueId.AS,
+    EnumValueId.HAVING,
+    EnumValueId.BACKUP,
+    EnumValueId.WHEN,
+    EnumValueId.CURRENT_TIME,
+    EnumValueId.OPTION,
+    EnumValueId.SHUTDOWN,
+    EnumValueId.CLOSE,
+    EnumValueId.IDENTITY,
+    EnumValueId.IS,
+    EnumValueId.NOCHECK,
+    EnumValueId.PRECISION,
+    EnumValueId.FOR,
+    EnumValueId.PUBLIC,
+    EnumValueId.OR,
+    EnumValueId.THEN,
+    EnumValueId.FREETEXT,
+    EnumValueId.CURSOR,
+    EnumValueId.REFERENCES,
+    EnumValueId.DECLARE,
+    EnumValueId.CURRENT_DATE,
+    EnumValueId.FREETEXTTABLE,
+    EnumValueId.CROSS,
+    EnumValueId.TRIGGER,
+    EnumValueId.CURRENT,
+    EnumValueId.BETWEEN,
+    EnumValueId.LIKE,
+    EnumValueId.EXEC,
+    EnumValueId.GOTO,
+    EnumValueId.CONTINUE,
+    EnumValueId.ESCAPE,
+    EnumValueId.NULLIF,
+    EnumValueId.NONCLUSTERED,
+    EnumValueId.FILE,
+    EnumValueId.ON,
+    EnumValueId.RECONFIGURE,
+    EnumValueId.COMMIT,
+    EnumValueId.COLLATE,
+    EnumValueId.OVER,
+    EnumValueId.SEMANTICSIMILARITYTABLE,
+    EnumValueId.FETCH,
+    EnumValueId.SEMANTICKEYPHRASETABLE,
+    EnumValueId.TABLESAMPLE,
+    EnumValueId.FILLFACTOR,
+    EnumValueId.DATABASE,
+    EnumValueId.DELETE,
+    EnumValueId.OPENDATASOURCE,
+    EnumValueId.RESTORE,
+    EnumValueId.IDENTITY_INSERT,
+    EnumValueId.KILL,
+    EnumValueId.INTERSECT,
+    EnumValueId.GRANT,
+    EnumValueId.CONTAINSTABLE,
+    EnumValueId.FROM,
+    EnumValueId.VALUES,
+    EnumValueId.TRY_CONVERT,
+    EnumValueId.EXIT,
+    EnumValueId.DOUBLE,
+    EnumValueId.CURRENT_TIMESTAMP,
+    EnumValueId.PROC,
+    EnumValueId.EXCEPT,
+    EnumValueId.HOLDLOCK,
+    EnumValueId.WHERE,
+    EnumValueId.PLAN,
+    EnumValueId.TABLE,
+    EnumValueId.CONTAINS,
+    EnumValueId.REVOKE,
+    EnumValueId.REPLICATION,
+    EnumValueId.ASC,
+    EnumValueId.TRUNCATE,
+    EnumValueId.IN,
+    EnumValueId.ADD,
+    EnumValueId.READTEXT,
+    EnumValueId.REVERT,
+    EnumValueId.COALESCE,
+    EnumValueId.USE,
+    EnumValueId.CURRENT_USER,
+    EnumValueId.OPENQUERY,
+    EnumValueId.LOAD,
+    EnumValueId.OF,
+    EnumValueId.DUMP,
+    EnumValueId.LINENO,
+    EnumValueId.EXISTS,
+    EnumValueId.OFF,
+    EnumValueId.UNION,
+    EnumValueId.DISTRIBUTED,
+    EnumValueId.VARYING,
+    EnumValueId.DESC,
+    EnumValueId.SYSTEM_USER,
+    EnumValueId.IF,
+    EnumValueId.ELSE,
+    EnumValueId.OPENXML,
+    EnumValueId.SETUSER,
+    EnumValueId.CLUSTERED,
+    EnumValueId.WHILE,
+    EnumValueId.WITH,
+    EnumValueId.LEFT,
+    EnumValueId.ROLLBACK,
+    EnumValueId.WAITFOR,
+    EnumValueId.SCHEMA,
+    EnumValueId.DISTINCT,
+    EnumValueId.BULK,
+    EnumValueId.FUNCTION,
+    EnumValueId.SAVE,
+    EnumValueId.CONSTRAINT,
+    EnumValueId.UPDATETEXT,
+    EnumValueId.CASCADE,
+    EnumValueId.FOREIGN,
+    EnumValueId.OPEN,
+    EnumValueId.ALL,
+    EnumValueId.BREAK,
+    EnumValueId.ROWGUIDCOL,
+    EnumValueId.TRANSACTION,
+    EnumValueId.UPDATE,
+    EnumValueId.ANY,
+    EnumValueId.BY,
+    EnumValueId.ORDER,
+    EnumValueId.EXTERNAL,
+    EnumValueId.KEY,
+    EnumValueId.TRAN,
+    EnumValueId.OFFSETS,
+    EnumValueId.RAISERROR,
+    EnumValueId.SELECT,
+    EnumValueId.CREATE,
+    EnumValueId.GROUP,
+    EnumValueId.FULL,
+    EnumValueId.ALTER,
+    EnumValueId.READ,
+    EnumValueId.INSERT,
+    EnumValueId.BEGIN,
+    EnumValueId.STATISTICS,
+    EnumValueId.OUTER,
+    EnumValueId.OPENROWSET,
+    EnumValueId.SOME,
+    EnumValueId.RULE,
+    EnumValueId.AUTHORIZATION,
+    EnumValueId.PRINT,
+    EnumValueId.DEALLOCATE,
+    EnumValueId.PERCENT,
+    EnumValueId.RIGHT,
+    EnumValueId.INDEX,
+    EnumValueId.JOIN,
+    EnumValueId.PRIMARY,
+    EnumValueId.UNIQUE,
+    EnumValueId.WRITETEXT,
+    EnumValueId.COMPUTE,
+    EnumValueId.RESTRICT,
+    EnumValueId.TO,
+    EnumValueId.DEFAULT,
+    EnumValueId.NULL,
+    EnumValueId.CHECKPOINT,
+    EnumValueId.IDENTITYCOL,
 })
 
-STARTER_KEYWORDS_1 = frozenset({
-	'SELECT', 'UPDATE', 'INSERT', 'DELETE', 'MERGE', 'CREATE', 'DROP', 'TRUNCATE', 'ALTER', 'EXEC', 'EXECUTE', 
-	'DECLARE', 'SET', 'COMMIT', 'ROLLBACK', 'USE', 'GRANT', 'DENY', 'REVOKE', 'SAVE', 'BACKUP', 
-	'RESTORE', 'PRINT', 'GOTO', 'RETURN', 'IF', 'WHILE'
-})
-
-STARTER_KEYWORDS_2 = frozenset({
-	'BEGIN TRAN', 'BEGIN TRANSACTION', 'COMMIT TRAN', 'COMMIT TRANSACTION'
-})
-
-_KEYWORD_SUBTYPES_1 = {'SESSION_USER': EnumTokenSubtype.UNKNOWN, 'VIEW': EnumTokenSubtype.UNKNOWN, 'NOT': EnumTokenSubtype.UNKNOWN, 'TSEQUAL': EnumTokenSubtype.UNKNOWN, 'SECURITYAUDIT': EnumTokenSubtype.UNKNOWN, 'CONVERT': EnumTokenSubtype.UNKNOWN, 'BROWSE': EnumTokenSubtype.UNKNOWN, 'UNPIVOT': EnumTokenSubtype.UNKNOWN, 'ROWCOUNT': EnumTokenSubtype.UNKNOWN, 'RETURN': EnumTokenSubtype.FLOW_CONTROL, 'SEMANTICSIMILARITYDETAILSTABLE': EnumTokenSubtype.UNKNOWN, 'PROCEDURE': EnumTokenSubtype.UNKNOWN, 'DENY': EnumTokenSubtype.DCL, 'PIVOT': EnumTokenSubtype.UNKNOWN, 'AND': EnumTokenSubtype.UNKNOWN, 'TOP': EnumTokenSubtype.QUERY_CLAUSES, 'INTO': EnumTokenSubtype.UNKNOWN, 'SET': EnumTokenSubtype.OTHER_KEYWORDS, 'END': EnumTokenSubtype.UNKNOWN, 'CASE': EnumTokenSubtype.FLOW_CONTROL, 'CHECK': EnumTokenSubtype.UNKNOWN, 'COLUMN': EnumTokenSubtype.UNKNOWN, 'EXECUTE': EnumTokenSubtype.UNKNOWN, 'DISK': EnumTokenSubtype.UNKNOWN, 'MERGE': EnumTokenSubtype.DML, 'INNER': EnumTokenSubtype.UNKNOWN, 'NATIONAL': EnumTokenSubtype.UNKNOWN, 'ERRLVL': EnumTokenSubtype.UNKNOWN, 'TEXTSIZE': EnumTokenSubtype.UNKNOWN, 'DROP': EnumTokenSubtype.DDL, 'USER': EnumTokenSubtype.UNKNOWN, 'DBCC': EnumTokenSubtype.UNKNOWN, 'AS': EnumTokenSubtype.UNKNOWN, 'HAVING': EnumTokenSubtype.QUERY_CLAUSES, 'BACKUP': EnumTokenSubtype.UNKNOWN, 'WHEN': EnumTokenSubtype.UNKNOWN, 'CURRENT_TIME': EnumTokenSubtype.UNKNOWN, 'OPTION': EnumTokenSubtype.OTHER_KEYWORDS, 'SHUTDOWN': EnumTokenSubtype.UNKNOWN, 'CLOSE': EnumTokenSubtype.UNKNOWN, 'IDENTITY': EnumTokenSubtype.UNKNOWN, 'IS': EnumTokenSubtype.UNKNOWN, 'NOCHECK': EnumTokenSubtype.UNKNOWN, 'PRECISION': EnumTokenSubtype.UNKNOWN, 'FOR': EnumTokenSubtype.UNKNOWN, 'PUBLIC': EnumTokenSubtype.UNKNOWN, 'OR': EnumTokenSubtype.UNKNOWN, 'THEN': EnumTokenSubtype.UNKNOWN, 'FREETEXT': EnumTokenSubtype.UNKNOWN, 'CURSOR': EnumTokenSubtype.UNKNOWN, 'REFERENCES': EnumTokenSubtype.UNKNOWN, 'DECLARE': EnumTokenSubtype.OTHER_KEYWORDS, 'CURRENT_DATE': EnumTokenSubtype.UNKNOWN, 'FREETEXTTABLE': EnumTokenSubtype.UNKNOWN, 'CROSS': EnumTokenSubtype.UNKNOWN, 'TRIGGER': EnumTokenSubtype.UNKNOWN, 'CURRENT': EnumTokenSubtype.UNKNOWN, 'BETWEEN': EnumTokenSubtype.UNKNOWN, 'LIKE': EnumTokenSubtype.UNKNOWN, 'EXEC': EnumTokenSubtype.OTHER_KEYWORDS, 'GOTO': EnumTokenSubtype.FLOW_CONTROL, 'CONTINUE': EnumTokenSubtype.FLOW_CONTROL, 'ESCAPE': EnumTokenSubtype.UNKNOWN, 'NULLIF': EnumTokenSubtype.UNKNOWN, 'NONCLUSTERED': EnumTokenSubtype.UNKNOWN, 'FILE': EnumTokenSubtype.UNKNOWN, 'ON': EnumTokenSubtype.UNKNOWN, 'RECONFIGURE': EnumTokenSubtype.UNKNOWN, 'COMMIT': EnumTokenSubtype.TCL, 'COLLATE': EnumTokenSubtype.UNKNOWN, 'OVER': EnumTokenSubtype.UNKNOWN, 'SEMANTICSIMILARITYTABLE': EnumTokenSubtype.UNKNOWN, 'FETCH': EnumTokenSubtype.UNKNOWN, 'SEMANTICKEYPHRASETABLE': EnumTokenSubtype.UNKNOWN, 'TABLESAMPLE': EnumTokenSubtype.UNKNOWN, 'FILLFACTOR': EnumTokenSubtype.UNKNOWN, 'DATABASE': EnumTokenSubtype.UNKNOWN, 'DELETE': EnumTokenSubtype.DML, 'OPENDATASOURCE': EnumTokenSubtype.UNKNOWN, 'RESTORE': EnumTokenSubtype.UNKNOWN, 'IDENTITY_INSERT': EnumTokenSubtype.UNKNOWN, 'KILL': EnumTokenSubtype.UNKNOWN, 'INTERSECT': EnumTokenSubtype.SET_OPERATORS, 'GRANT': EnumTokenSubtype.DCL, 'CONTAINSTABLE': EnumTokenSubtype.UNKNOWN, 'FROM': EnumTokenSubtype.QUERY_CLAUSES, 'VALUES': EnumTokenSubtype.UNKNOWN, 'TRY_CONVERT': EnumTokenSubtype.UNKNOWN, 'EXIT': EnumTokenSubtype.UNKNOWN, 'DOUBLE': EnumTokenSubtype.UNKNOWN, 'CURRENT_TIMESTAMP': EnumTokenSubtype.UNKNOWN, 'PROC': EnumTokenSubtype.UNKNOWN, 'EXCEPT': EnumTokenSubtype.SET_OPERATORS, 'HOLDLOCK': EnumTokenSubtype.UNKNOWN, 'WHERE': EnumTokenSubtype.QUERY_CLAUSES, 'PLAN': EnumTokenSubtype.UNKNOWN, 'TABLE': EnumTokenSubtype.UNKNOWN, 'CONTAINS': EnumTokenSubtype.UNKNOWN, 'REVOKE': EnumTokenSubtype.DCL, 'REPLICATION': EnumTokenSubtype.UNKNOWN, 'ASC': EnumTokenSubtype.UNKNOWN, 'TRUNCATE': EnumTokenSubtype.DDL, 'IN': EnumTokenSubtype.SET_PREDICATE_OPERATORS, 'ADD': EnumTokenSubtype.UNKNOWN, 'READTEXT': EnumTokenSubtype.UNKNOWN, 'REVERT': EnumTokenSubtype.UNKNOWN, 'COALESCE': EnumTokenSubtype.UNKNOWN, 'USE': EnumTokenSubtype.OTHER_KEYWORDS, 'CURRENT_USER': EnumTokenSubtype.UNKNOWN, 'OPENQUERY': EnumTokenSubtype.UNKNOWN, 'LOAD': EnumTokenSubtype.UNKNOWN, 'OF': EnumTokenSubtype.UNKNOWN, 'DUMP': EnumTokenSubtype.UNKNOWN, 'LINENO': EnumTokenSubtype.UNKNOWN, 'EXISTS': EnumTokenSubtype.SET_PREDICATE_OPERATORS, 'OFF': EnumTokenSubtype.UNKNOWN, 'UNION': EnumTokenSubtype.SET_OPERATORS, 'DISTRIBUTED': EnumTokenSubtype.UNKNOWN, 'VARYING': EnumTokenSubtype.UNKNOWN, 'DESC': EnumTokenSubtype.UNKNOWN, 'SYSTEM_USER': EnumTokenSubtype.UNKNOWN, 'IF': EnumTokenSubtype.FLOW_CONTROL, 'ELSE': EnumTokenSubtype.FLOW_CONTROL, 'OPENXML': EnumTokenSubtype.UNKNOWN, 'SETUSER': EnumTokenSubtype.UNKNOWN, 'CLUSTERED': EnumTokenSubtype.UNKNOWN, 'WHILE': EnumTokenSubtype.FLOW_CONTROL, 'WITH': EnumTokenSubtype.OTHER_KEYWORDS, 'LEFT': EnumTokenSubtype.UNKNOWN, 'ROLLBACK': EnumTokenSubtype.TCL, 'WAITFOR': EnumTokenSubtype.UNKNOWN, 'SCHEMA': EnumTokenSubtype.UNKNOWN, 'DISTINCT': EnumTokenSubtype.UNKNOWN, 'BULK': EnumTokenSubtype.UNKNOWN, 'FUNCTION': EnumTokenSubtype.UNKNOWN, 'SAVE': EnumTokenSubtype.UNKNOWN, 'CONSTRAINT': EnumTokenSubtype.UNKNOWN, 'UPDATETEXT': EnumTokenSubtype.UNKNOWN, 'CASCADE': EnumTokenSubtype.UNKNOWN, 'FOREIGN': EnumTokenSubtype.UNKNOWN, 'OPEN': EnumTokenSubtype.UNKNOWN, 'ALL': EnumTokenSubtype.SET_PREDICATE_OPERATORS, 'BREAK': EnumTokenSubtype.FLOW_CONTROL, 'ROWGUIDCOL': EnumTokenSubtype.UNKNOWN, 'TRANSACTION': EnumTokenSubtype.UNKNOWN, 'UPDATE': EnumTokenSubtype.DML, 'ANY': EnumTokenSubtype.SET_PREDICATE_OPERATORS, 'BY': EnumTokenSubtype.UNKNOWN, 'ORDER': EnumTokenSubtype.UNKNOWN, 'EXTERNAL': EnumTokenSubtype.UNKNOWN, 'KEY': EnumTokenSubtype.UNKNOWN, 'TRAN': EnumTokenSubtype.UNKNOWN, 'OFFSETS': EnumTokenSubtype.UNKNOWN, 'RAISERROR': EnumTokenSubtype.UNKNOWN, 'SELECT': EnumTokenSubtype.QUERY_CLAUSES, 'CREATE': EnumTokenSubtype.DDL, 'GROUP': EnumTokenSubtype.UNKNOWN, 'FULL': EnumTokenSubtype.UNKNOWN, 'ALTER': EnumTokenSubtype.DDL, 'READ': EnumTokenSubtype.UNKNOWN, 'INSERT': EnumTokenSubtype.DML, 'BEGIN': EnumTokenSubtype.UNKNOWN, 'STATISTICS': EnumTokenSubtype.UNKNOWN, 'OUTER': EnumTokenSubtype.UNKNOWN, 'OPENROWSET': EnumTokenSubtype.UNKNOWN, 'SOME': EnumTokenSubtype.SET_PREDICATE_OPERATORS, 'RULE': EnumTokenSubtype.UNKNOWN, 'AUTHORIZATION': EnumTokenSubtype.UNKNOWN, 'PRINT': EnumTokenSubtype.OTHER_KEYWORDS, 'DEALLOCATE': EnumTokenSubtype.UNKNOWN, 'PERCENT': EnumTokenSubtype.UNKNOWN, 'RIGHT': EnumTokenSubtype.UNKNOWN, 'INDEX': EnumTokenSubtype.UNKNOWN, 'JOIN': EnumTokenSubtype.RELATIONAL_OPERATORS, 'PRIMARY': EnumTokenSubtype.UNKNOWN, 'UNIQUE': EnumTokenSubtype.UNKNOWN, 'WRITETEXT': EnumTokenSubtype.UNKNOWN, 'COMPUTE': EnumTokenSubtype.UNKNOWN, 'RESTRICT': EnumTokenSubtype.UNKNOWN, 'TO': EnumTokenSubtype.UNKNOWN, 'DEFAULT': EnumTokenSubtype.UNKNOWN, 'NULL': EnumTokenSubtype.UNKNOWN, 'CHECKPOINT': EnumTokenSubtype.UNKNOWN, 'IDENTITYCOL': EnumTokenSubtype.UNKNOWN}
-_KEYWORD_SUBTYPES_2 = {('INNER', 'JOIN'): ['INNER JOIN', EnumTokenSubtype.RELATIONAL_OPERATORS], ('CROSS', 'JOIN'): ['CROSS JOIN', EnumTokenSubtype.RELATIONAL_OPERATORS], ('COMMIT', 'TRAN'): ['COMMIT TRAN', None], ('ADD', 'CONSTRAINT'): ['ADD CONSTRAINT', None], ('WITHIN', 'GROUP'): ['WITHIN GROUP', None], ('BEGIN', 'TRAN'): ['BEGIN TRAN', None], ('CROSS', 'APPLY'): ['CROSS APPLY', None], ('BEGIN', 'TRANSACTION'): ['BEGIN TRANSACTION', EnumTokenSubtype.TCL], ('ROLLBACK', 'TRANSACTION'): ['ROLLBACK TRANSACTION', None], ('BEGIN', 'TRY'): ['BEGIN TRY', None], ('GROUP', 'BY'): ['GROUP BY', EnumTokenSubtype.QUERY_CLAUSES], ('END', 'CATCH'): ['END CATCH', None], ('FULL', 'JOIN'): ['FULL JOIN', EnumTokenSubtype.RELATIONAL_OPERATORS], ('COMMIT', 'TRANSACTION'): ['COMMIT TRANSACTION', None], ('ADD', 'COLUMN'): ['ADD COLUMN', None], ('BEGIN', 'CATCH'): ['BEGIN CATCH', None], ('LEFT', 'JOIN'): ['LEFT JOIN', EnumTokenSubtype.RELATIONAL_OPERATORS], ('ROLLBACK', 'TRAN'): ['ROLLBACK TRAN', None], ('ORDER', 'BY'): ['ORDER BY', EnumTokenSubtype.QUERY_CLAUSES], ('END', 'TRY'): ['END TRY', None], ('RIGHT', 'JOIN'): ['RIGHT JOIN', EnumTokenSubtype.RELATIONAL_OPERATORS], ('OUTER', 'APPLY'): ['OUTER APPLY', None], ('IS', 'NULL'): ['IS NULL', None], ('NOT', 'IN'): ['NOT IN', None], ('NOT', 'BETWEEN'): ['NOT BETWEEN', None], ('NOT', 'LIKE'):['NOT LIKE', None], ('NOT', 'EXISTS'):['NOT EXISTS', None] }
-_KEYWORD_SUBTYPES_3 = {('RIGHT', 'OUTER', 'JOIN'): ['RIGHT OUTER JOIN', EnumTokenSubtype.RELATIONAL_OPERATORS], ('LEFT', 'OUTER', 'JOIN'): ['LEFT OUTER JOIN', EnumTokenSubtype.RELATIONAL_OPERATORS], ('FULL', 'OUTER', 'JOIN'): ['FULL OUTER JOIN', EnumTokenSubtype.RELATIONAL_OPERATORS], ('IS', 'NOT', 'NULL'): ['IS NOT NULL', None]}
+_KEYWORDS_2 = {
+    (EnumValueId.INNER, EnumValueId.JOIN): ['INNER JOIN', EnumValueId.INNER_JOIN],
+    (EnumValueId.CROSS, EnumValueId.JOIN): ['CROSS JOIN', EnumValueId.CROSS_JOIN],
+    (EnumValueId.COMMIT, EnumValueId.TRAN): ['COMMIT TRAN', EnumValueId.COMMIT_TRAN],
+    (EnumValueId.ADD, EnumValueId.CONSTRAINT): ['ADD CONSTRAINT', EnumValueId.ADD_CONSTRAINT],
+    (EnumValueId.WITHIN, EnumValueId.GROUP): ['WITHIN GROUP', EnumValueId.WITHIN_GROUP],
+    (EnumValueId.BEGIN, EnumValueId.TRAN): ['BEGIN TRAN', EnumValueId.BEGIN_TRAN],
+    (EnumValueId.CROSS, EnumValueId.APPLY): ['CROSS APPLY', EnumValueId.CROSS_APPLY],
+    (EnumValueId.BEGIN, EnumValueId.TRANSACTION): ['BEGIN TRANSACTION', EnumValueId.BEGIN_TRANSACTION],
+    (EnumValueId.ROLLBACK, EnumValueId.TRANSACTION): ['ROLLBACK TRANSACTION', EnumValueId.ROLLBACK_TRANSACTION],
+    (EnumValueId.BEGIN, EnumValueId.TRY): ['BEGIN TRY', EnumValueId.BEGIN_TRY],
+    (EnumValueId.GROUP, EnumValueId.BY): ['GROUP BY', EnumValueId.GROUP_BY],
+    (EnumValueId.END, EnumValueId.CATCH): ['END CATCH', EnumValueId.END_CATCH],
+    (EnumValueId.FULL, EnumValueId.JOIN): ['FULL JOIN', EnumValueId.FULL_JOIN],
+    (EnumValueId.COMMIT, EnumValueId.TRANSACTION): ['COMMIT TRANSACTION', EnumValueId.COMMIT_TRANSACTION],
+    (EnumValueId.ADD, EnumValueId.COLUMN): ['ADD COLUMN', EnumValueId.ADD_COLUMN],
+    (EnumValueId.BEGIN, EnumValueId.CATCH): ['BEGIN CATCH', EnumValueId.BEGIN_CATCH],
+    (EnumValueId.LEFT, EnumValueId.JOIN): ['LEFT JOIN', EnumValueId.LEFT_JOIN],
+    (EnumValueId.ROLLBACK, EnumValueId.TRAN): ['ROLLBACK TRAN', EnumValueId.ROLLBACK_TRAN],
+    (EnumValueId.ORDER, EnumValueId.BY): ['ORDER BY', EnumValueId.ORDER_BY],
+    (EnumValueId.END, EnumValueId.TRY): ['END TRY', EnumValueId.END_TRY],
+    (EnumValueId.RIGHT, EnumValueId.JOIN): ['RIGHT JOIN', EnumValueId.RIGHT_JOIN],
+    (EnumValueId.OUTER, EnumValueId.APPLY): ['OUTER APPLY', EnumValueId.OUTER_APPLY],
+    (EnumValueId.IS, EnumValueId.NULL): ['IS NULL', EnumValueId.IS_NULL],
+    (EnumValueId.NOT, EnumValueId.IN): ['NOT IN', EnumValueId.NOT_IN],
+    (EnumValueId.NOT, EnumValueId.BETWEEN): ['NOT BETWEEN', EnumValueId.NOT_BETWEEN],
+    (EnumValueId.NOT, EnumValueId.LIKE): ['NOT LIKE', EnumValueId.NOT_LIKE],
+    (EnumValueId.NOT, EnumValueId.EXISTS): ['NOT EXISTS', EnumValueId.NOT_EXISTS],
+}
+_KEYWORDS_3 = {
+    (EnumValueId.RIGHT, EnumValueId.OUTER, EnumValueId.JOIN): ['RIGHT OUTER JOIN', EnumValueId.RIGHT_OUTER_JOIN],
+    (EnumValueId.LEFT, EnumValueId.OUTER, EnumValueId.JOIN): ['LEFT OUTER JOIN', EnumValueId.LEFT_OUTER_JOIN],
+    (EnumValueId.FULL, EnumValueId.OUTER, EnumValueId.JOIN): ['FULL OUTER JOIN', EnumValueId.FULL_OUTER_JOIN],
+    (EnumValueId.IS, EnumValueId.NOT, EnumValueId.NULL): ['IS NOT NULL', EnumValueId.IS_NOT_NULL],
+}
 
 def split_batches(sql: str, batch_separator: str = 'GO') -> List[str]:
 	"""
@@ -98,8 +879,8 @@ def split_batches(sql: str, batch_separator: str = 'GO') -> List[str]:
 
 	Args:
 		sql (str): Full SQL script to be split.
-		batch_separator (str, optional): String that marks the batch separator. 
-			Leading/trailing spaces and case are ignored. 
+		batch_separator (str, optional): String that marks the batch separator.
+			Leading/trailing spaces and case are ignored.
 			Default is 'GO'.
 
 	Returns:
@@ -128,7 +909,7 @@ def split_batches(sql: str, batch_separator: str = 'GO') -> List[str]:
 
 	return batches
 
-def find_token_at(self, tokens: List[TSqlToken], position: int) -> TSqlToken | None:
+def find_token_at(self, tokens: List[Token], position: int) -> Token | None:
 	"""
 	Find the token that covers a given character position.
 
@@ -138,42 +919,35 @@ def find_token_at(self, tokens: List[TSqlToken], position: int) -> TSqlToken | N
 
 	Returns:
 		TSqlToken | None: The token that contains the position, or None if not found.
-	"""	
+	"""
 	return next((t for t in tokens if t.start <= position < t.end), None)
 
-def _flush_buffer(buf: list[TSqlToken]) -> Iterator[TSqlToken]:
+def _flush_buffer(buf: list[Token]) -> Iterator[Token]:
 
 	# Compound Keywords
 	i=0
 	while i < len(buf):
 		pending = len(buf) - i
-		if pending >=3 and (subtype := _KEYWORD_SUBTYPES_3.get((buf[i].value.upper(), buf[i+1].value.upper(), buf[i+2].value.upper()))) != None:
-			buf[i].value = subtype[0]
+		if pending >=3 and (val := _KEYWORDS_3.get((buf[i].value_id, buf[i+1].value_id, buf[i+2].value_id))) != None:
+			buf[i].value = val[0]
 			buf[i].end = buf[i+2].end
 			buf[i].type = EnumTokenType.KEYWORD
-			buf[i].subtype = subtype[1]
+			buf[i].value_id = val[1]
 			del buf[i+1:i+3]
-		elif pending >= 2 and (subtype := _KEYWORD_SUBTYPES_2.get((buf[i].value.upper(), buf[i+1].value.upper()))) != None:
-			buf[i].value = subtype[0]
+		elif pending >= 2 and (val := _KEYWORDS_2.get((buf[i].value_id, buf[i+1].value_id))) != None:
+			buf[i].value = val[0]
 			buf[i].end = buf[i+1].end
 			buf[i].type = EnumTokenType.KEYWORD
-			buf[i].subtype = subtype[1]
-			buf[i].is_starter_keyword = buf[i].value in STARTER_KEYWORDS_2
+			buf[i].value_id = val[1]
 			del buf[i+1:i+2]
-		elif (subtype := _KEYWORD_SUBTYPES_1.get(buf[i].value.upper())) != None:
-			buf[i].value = buf[i].value.upper()
+		elif buf[i].value_id in _KEYWORDS_1:
 			buf[i].type = EnumTokenType.KEYWORD
-			buf[i].subtype = subtype
-			buf[i].is_starter_keyword = buf[i].value in STARTER_KEYWORDS_1
+
 		i += 1
 
 	while buf:
 		# Merge dotted identifiers
-		if buf[0].type == EnumTokenType.WORD.value:
-			buf[0].type = EnumTokenType.IDENTIFIER
-			# c = buf[0].value[0]
-			# if c == '@': buf[0].subtype = EnumTokenSubtype.VARIABLE
-			# elif c == '#': buf[0].subtype = EnumTokenSubtype.TEMPORARY_OBJECT
+		if buf[0].type == EnumTokenType.IDENTIFIER.value:
 			while len(buf) >= 3 and buf[1].value == '.' and buf[2].type != EnumTokenType.KEYWORD.value:
 				buf[0].value += '.' + buf[2].value
 				buf[0].end = buf[2].end
@@ -181,51 +955,28 @@ def _flush_buffer(buf: list[TSqlToken]) -> Iterator[TSqlToken]:
 
 		yield buf.pop(0)
 
-def lex(sql, quoted_identifiers = True) -> Iterator[TSqlToken]:
-	"""
-	Lexical analyzer for SQL code. Splits a SQL script into tokens.
+def lex(sql, quoted_identifiers = True) -> Iterator[Token]:
+	if quoted_identifiers: is_identifier = lambda value:(value[0] == '[' or value[0] == '"')
+	else: is_identifier = lambda value:(value[0] == '[')
 
-	Args:
-		sql (str): The SQL script to tokenize.
-
-	Yields:
-		TSqlToken: Tokens extracted from the SQL script, including words,
-		operators, comments, and delimiters.
-
-	Notes:
-		- Handles SQL-specific constructs such as:
-			* Word starts: `_`, `@`, `#`, and letters.
-			* Word characters: `_`, `@`, `#`, `$`, letters, digits.
-			* Delimited identifiers and strings: `'...'`, `"..."`, `[...]`.
-			* Line comments: `--`.
-			* Block comments: `/* ... */`.
-			* Operators (single-char and two-char).
-		- Buffers consecutive words and dots (`.`) before yielding.
-	"""
-	it = tokenizer.tokenize(text=sql,
-				word_start=frozenset('_@#' + string.ascii_letters),
-				word_chars=frozenset('_@#$' + string.ascii_letters + string.digits),
-				delimited_constructs={"'": "'", '"': '"', '[': "]"},
-				line_comment='--',
-				block_comments=['/*', '*/'],
-				operators1char=frozenset('><=-+*/%&|^~'),
-				operators2chars=frozenset(['<>', '<=', '>='])				 
-				 )
-	buf:list[TSqlToken] = []
-
+	it = tokenize(text=sql,
+					word_start=frozenset('_@#' + string.ascii_letters),
+					word_chars=frozenset('_@#$' + string.ascii_letters + string.digits),
+					delimited_constructs={"'": "'", '"': '"', '[': "]"},
+					line_comment='--',
+					block_comments=['/*', '*/'],
+					operators1char=frozenset('><=-+*/%&|^~'),
+					operators2chars=frozenset(['<>', '<=', '>=']),
+					is_identifier=is_identifier,
+					value_hash=value_hash,
+					comments=False
+					)
+	
+	buf:list[Token] = []
 	for t in it:
-		token = TSqlToken(t)
-		token.value = token.get_value(sql)
-		if token.type == EnumTokenType.DELIMITED_LITERAL:
-			if token.value[0] == '[' or (token.value[0] == '"' and quoted_identifiers == True):
-				token.type = tokenizer.WORD
-		c = token.value[0]
-		if c == '@': token.type, token.subtype = EnumTokenType.IDENTIFIER, EnumTokenSubtype.VARIABLE
-		elif c == '#': token.type, token.subtype = EnumTokenType.IDENTIFIER, EnumTokenSubtype.TEMPORARY_OBJECT
-		elif token.type == tokenizer.WORD or token.value == '.':
-			buf.append(token)
+		if t.value_id == EnumValueId.DOT or (t.type == EnumTokenType.IDENTIFIER and t.value[0] not in('@', '#')):
+			buf.append(t)
 			continue
 		yield from _flush_buffer(buf)
-		yield token
-	
+		yield t
 	yield from _flush_buffer(buf=buf)
