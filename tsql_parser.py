@@ -56,6 +56,8 @@ class N(IntEnum):
     table_or_view_name = auto()
     user_defined_function = auto()
     table_source = auto()
+    parenthesized_table_source = auto()
+    joined_table_source = auto()
     pivoted_table = auto()
     unpivoted_table = auto()
     select_clause = auto()
@@ -457,17 +459,21 @@ def _udf_table():
 
 def _table_source():
     left = Node(N.table_source)
-    if Tok.i == I.OPENJSON: left = _openjson()
-    elif Tok.i in(I.OPENROWSET, I.OPENQUERY, I.OPENDATASOURCE): left =_rowset_function()
-    elif Tok.i == I.OPENXML: left = _openxml()
-    elif Tok.t == Ty.IDENTIFIER and matchi(I.PARENTH_1, off=1): left =_udf_table()
-    elif Tok.t == Ty.IDENTIFIER: left =_table_or_view_name()
-    elif Tok.i == I.PARENTH_1 and matchxi(I.SELECT, I.INSERT, I.UPDATE, I.DELETE, off=1): left = _derived_table()
-    elif Tok.i == I.PARENTH_1 and matchi(I.VALUES, off=1): left = _table_value_construct()
-    elif Tok.i == I.PARENTH_1: left += [_tok(), _table_source(), _itok(I.PARENTH_2)]
+    if Tok.i == I.OPENJSON: left.append(_openjson())
+    elif Tok.i in(I.OPENROWSET, I.OPENQUERY, I.OPENDATASOURCE): left.append(_rowset_function())
+    elif Tok.i == I.OPENXML: left.append(_openxml())
+    elif Tok.t == Ty.IDENTIFIER and matchi(I.PARENTH_1, off=1): left.append(_udf_table())
+    elif Tok.t == Ty.IDENTIFIER: left.append(_table_or_view_name())
+    elif Tok.i == I.PARENTH_1 and matchxi(I.SELECT, I.INSERT, I.UPDATE, I.DELETE, off=1): left.append(_derived_table())
+    elif Tok.i == I.PARENTH_1 and matchi(I.VALUES, off=1): left.append(_table_value_construct())
+    elif Tok.i == I.PARENTH_1: 
+        p = Node(N.parenthesized_table_source)
+        p += [_tok(), _table_source(), _itok(I.PARENTH_2)]
+        left.append(p)
     else: error("Table source expected.")
 
     while Tok.i in(I.JOIN, I.INNER_JOIN, I.LEFT_JOIN, I.RIGHT_JOIN, I.FULL_JOIN, I.LEFT_OUTER_JOIN, I.RIGHT_OUTER_JOIN, I.FULL_OUTER_JOIN, I.CROSS_JOIN, I.CROSS_APPLY, I.OUTER_APPLY, I.PIVOT,  I.UNPIVOT):
+        left.type = N.joined_table_source
         match Tok.i:
             case I.PIVOT:
                 n = Node(N.pivoted_table)
