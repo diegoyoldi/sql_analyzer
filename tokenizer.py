@@ -3,19 +3,24 @@ from typing import Iterator
 import string
 from enum import IntEnum
 
-WORD = 1
-NUMBER = 2
-DELIMITED_LITERAL = 3
-OPERATOR = 4
-DELIMITER = 5
-LINE_COMMENT = 6
-BLOCK_COMMENT = 7
+class EnumTokenType(IntEnum):
+	IDENTIFIER = 1
+	INTEGER = 2
+	DECIMAL = 3
+	DELIMITED_LITERAL = 4
+	OPERATOR = 5
+	DELIMITER = 6
+	LINE_COMMENT = 7
+	BLOCK_COMMENT = 8
+	KEYWORD = 9
 
 @dataclass
 class Token:
 	start: int
 	end: int
 	type:int # 1 word, 2 number, 3 delimited_literal, 4 operator, 5 delimiter
+	value:str
+	value_id: int=None
 
 	def get_value(self, sql):
 		return sql[self.start : self.end]
@@ -32,7 +37,10 @@ def tokenize(
 	line_comment='--',
 	block_comments=['/*', '*/'],
 	operators1char=frozenset('><=-+*/%&|^~'),
-	operators2chars=frozenset(['<>', '<=', '>='])
+	operators2chars=frozenset(['<>', '<=', '>=']),
+	is_identifier = None,
+	value_hash={},
+	comments = False
 ) -> Iterator[Token]:
 	
 	text, i, n, linecomment_len = text + '\n', 0, len(text) + 1, len(line_comment)
@@ -47,7 +55,8 @@ def tokenize(
 		# Identifier
 		if c in word_start:
 			while i < n and text[i] in word_chars: i += 1
-			yield Token(start, i, type=WORD); continue
+			value = text[start:i].upper()
+			yield Token(start, i, type=EnumTokenType.IDENTIFIER, value=value, value_id=value_hash.get(value)); continue
 
 		# Number
 		dot = False
@@ -61,20 +70,21 @@ def tokenize(
 				while i < n and text[i].isdigit(): i += 1
 
 			if text[i] not in('E','e'):
-				yield Token(start, i, type=NUMBER)
+				yield Token(start, i, type=EnumTokenType.INTEGER if dot==False else EnumTokenType.DECIMAL, value=text[start:i])
 			else:
 				i += 1
 				if text[i] in ('+', '-'):
 					i += 1
 				while i < n and text[i].isdigit(): i += 1
-				yield Token(start, i, type=NUMBER)
+				yield Token(start, i, type=EnumTokenType.INTEGER if dot==False else EnumTokenType.DECIMAL, value=text[start:i])
 			continue
 
 		# Line comment
 		if text[i:i+linecomment_len] == line_comment:
 			start = i
 			i = text.find('\n', i+2) + 1 or n; 
-			yield Token(start, i, type=LINE_COMMENT)
+			if comments:
+				yield Token(start, i, type=EnumTokenType.LINE_COMMENT, value=text[start:i])
 			continue
 
 		# Block comment
@@ -85,7 +95,8 @@ def tokenize(
 				if text[i:i+opening_len] == block_opening: depth += 1; i += opening_len
 				elif text[i:i+closing_len] == block_closing: depth -= 1; i += closing_len
 				else: i += 1
-			yield Token(start, i, type=BLOCK_COMMENT)
+			if comments:
+				yield Token(start, i, type=EnumTokenType.BLOCK_COMMENT, value=text[start:i])
 			continue
 
 		# Delimited literal
@@ -94,12 +105,22 @@ def tokenize(
 			while i < n:
 				if text[i] == literal_closing and text[i+1:i+2] != literal_closing: i += 1; break
 				i += 2 if text[i:i+2] == literal_closing*2 else 1
-			yield Token(start, i, type=DELIMITED_LITERAL); continue
+			value = text[start:i]
+			value_id = None
+			if is_identifier != None and is_identifier(value): 
+				ty = EnumTokenType.IDENTIFIER
+				value_id = value_hash.get(value)
+			else: ty = EnumTokenType.DELIMITED_LITERAL
+			yield Token(start, i, type=ty, value=value, value_id=value_id)
+			continue
 
 		# Operator / delimiter
 		if text[i:i+2] in operators2chars:
-			yield Token(i, i+2, type=OPERATOR); i += 2
+			value = text[i:i+2]
+			yield Token(i, i+2, type=EnumTokenType.OPERATOR, value=value, value_id=value_hash.get(value)); i += 2
 		elif c in operators1char:
-			yield Token(i, i+1, type=OPERATOR); i += 1
+			value = text[i:i+1]
+			yield Token(i, i+1, type=EnumTokenType.OPERATOR, value=value, value_id=value_hash.get(value)); i += 1
 		else:
-			yield Token(i, i+1, type=DELIMITER); i += 1
+			value = text[i:i+1]
+			yield Token(i, i+1, type=EnumTokenType.DELIMITER, value=value, value_id=value_hash.get(value)); i += 1
