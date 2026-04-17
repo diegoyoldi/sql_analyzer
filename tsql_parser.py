@@ -1,4 +1,4 @@
-from tsql_lexer import lex, EnumValueId as I, EnumTokenType as Ty
+from tsql_lexer import lex, EnumValueId as I, EnumTokenType as Ty, Mask as M
 from enum import IntEnum, auto
 
 class Tok:
@@ -54,6 +54,7 @@ class N(IntEnum):
     pivot_clause = auto()
     unpivot_clause = auto()
     table_or_view_name = auto()
+    table_hint = auto()
     user_defined_function = auto()
     table_source = auto()
     parenthesized_table_source = auto()
@@ -72,7 +73,8 @@ class N(IntEnum):
     raw_auto_directives = auto()
     top_clause = auto()
     frame_bound = auto()
-    select_statemet = auto()
+    query_especification = auto()
+    query_expression = auto()
     value_expression_list = auto()
     primitive_value_list = auto()
     schema_column_list = auto()
@@ -121,28 +123,28 @@ def _tok():
         error('Unexpected EOF.')
     return Tok.consume_one()
 
-def _itok(exp:I):
+def _toki(exp:I):
     if Tok.idx >= Tok.LEN:
         error('Unexpected EOF.')
     elif Tok.i != exp:
         error(f"{exp.name} expected.")
     return Tok.consume_one()
 
-def _xitok(*exp):
+def _tokxi(*exp):
     if Tok.idx >= Tok.LEN:
         error('Unexpected EOF.')
     elif Tok.i not in exp:
         error(f"{'|'.join([e.name for e in exp])} expedted.")
     return Tok.consume_one()
 
-def _ttok(exp):
+def _tokt(exp):
     if Tok.idx >= Tok.LEN:
         error('Unexpected EOF.')
     elif Tok.t != exp:
         error(f"{exp.name} expected.")
     return Tok.consume_one()
 
-def _xttok(*exp):
+def _tokxt(*exp):
     if Tok.idx >= Tok.LEN:
         error('Unexpected EOF.')
     elif Tok.t not in exp:
@@ -164,35 +166,44 @@ def _row_range():
     n = Node(N.row_range)
     n.append(_tok()) # ROWS or RANGE
     if Tok.i == I.BETWEEN:
-        n+=[_tok(), _frame_bound(I.PRECEDING), _itok(I.AND), _frame_bound(I.FOLLOWING)]
+        n+=[_tok(), _frame_bound(I.PRECEDING), _toki(I.AND), _frame_bound(I.FOLLOWING)]
     else:
         n.append(_frame_bound(I.PRECEDING))
     return n
 
 def _over():
     n = Node(N.over)
-    n += [_itok(I.OVER), _itok(I.PARENTH_1)]
+    n += [_toki(I.OVER), _toki(I.PARENTH_1)]
     if Tok.i == I.PARTITION and matchi(I.BY, off=1): n += [_tok(), _tok(), _list(_expression, N.value_expression_list)]
     if Tok.i == I.ORDER_BY: n.append(_order_by())
     if Tok.i in (I.ROWS, I.RANGE): n.append(_row_range())
-    n.append(_itok(I.PARENTH_2))
+    n.append(_toki(I.PARENTH_2))
     return n
 
 def _datatype():
     n = Node(N.data_type)
     match Tok.i:
-        case I.CHAR | I.VARCHAR | I.NCHAR | I.NVARCHAR | I.DATETIMEOFFSET | I.DATETIME2:
+        case I.CHAR | I.NCHAR | I.DATETIMEOFFSET | I.DATETIME2:
             n.append(_tok())
-            if Tok.i == I.PARENTH_1: n +=[_tok(), _ttok(Ty.INTEGER), _itok(I.PARENTH_2)]
+            if Tok.i == I.PARENTH_1: n +=[_tok(), _tokt(Ty.INTEGER), _toki(I.PARENTH_2)]
+        case I.VARCHAR | I.NVARCHAR:
+            n.append(_tok())
+            if Tok.i == I.PARENTH_1: 
+                n.append(_tok())
+                if Tok.i == I.MAX:
+                    n.append(_tok())
+                else:
+                    n.append(_tokt(Ty.INTEGER))
+                n.append( _toki(I.PARENTH_2))
         case I.DECIMAL | I.NUMERIC:
             n.append(_tok())
             if Tok.i == I.PARENTH_1:
-                n +=[_tok(), _ttok(Ty.INTEGER)]
-                if Tok.i == I.COMMA: n += [_tok(), _ttok(Ty. INTEGER)]
-                n.append(_itok(I.PARENTH_2))
+                n +=[_tok(), _tokt(Ty.INTEGER)]
+                if Tok.i == I.COMMA: n += [_tok(), _tokt(Ty. INTEGER)]
+                n.append(_toki(I.PARENTH_2))
         case I.TINYINT | I.SMALLINT | I.INT | I.BIGINT | I.BIT | \
              I.DECIMAL | I.NUMERIC | I.MONEY | I.SMALLMONEY | I.FLOAT | I.REAL | I.MONEY | I.SMALLMONEY | \
-             I.DATE | I.TIME | I.DATETIME | \
+             I.DATE | I.TIME | I.DATETIME | I.SMALLDATETIME | \
              I.TEXT | I.NTEXT | I.VARBINARY | \
              I.IMAGE | I.GEOGRAPHY | I.GEOMETRY | I.HIERARCHYID | I.JSON | I.VECTOR | I.ROWVERSION | I.SQL_VARIANT | \
              I.UNIQUEIDENTIFIER | I.XML:
@@ -201,16 +212,45 @@ def _datatype():
             error('Data type expected.')
     return n
 
-def _function_call():
+def _parameter():
+    n = Node(N.expression)
+    if Tok.i == I.DEFAULT:
+        n.append(_tok())
+    else:
+        n.extend(_expression())
+    return n
+
+def _if_function_call():
+    if matchi(I.PARENTH_1, off=1) == False:
+        return
     n = Node(N.function_call)
     distinct = False
-    if Tok.i == I.CAST:
-        n +=[_tok(), _itok(I.PARENTH_1), _expression(), _itok(I.AS), _datatype(), _itok(I.PARENTH_2)]
-    elif matchi(I.DISTINCT, off=2):
-        distinct = True
-        n +=[_ttok(Ty.IDENTIFIER), _itok(I.PARENTH_1), _itok(I.DISTINCT), _list(_primary_expression, N.primitive_value_list), _itok(I.PARENTH_2)]
+    if Tok.i in (I.CAST, I.TRY_CAST):
+        n +=[_tok(), _toki(I.PARENTH_1), _expression(), _toki(I.AS), _datatype(), _toki(I.PARENTH_2)]
+    elif Tok.i in (I.CONVERT, I.TRY_CONVERT):
+        n +=[_tok(), _toki(I.PARENTH_1), _datatype(), _toki(I.COMMA), _expression()]
+        if Tok.i == I.COMMA: n +=[_toki(I.COMMA), _expression()]
+        n.append(_toki(I.PARENTH_2))
+    elif Tok.i in(I.PARSE, I.TRY_PARSE):
+        n +=[_tok(), _toki(I.PARENTH_1), _expression(), _toki(I.AS), _datatype()]
+        if matchi(I.USING): n +=[_tok(), _expression()]
+        n.append(_toki(I.PARENTH_2))
+    elif Tok.i == I.COUNT and matchi(I.PARENTH_1, off=1) and matchi(I.OP_MUL, off=2) and matchi(I.PARENTH_2, off=3):
+        n +=[_tok(), _tok(), _tok(), _tok()]
+    elif Tok.i == I.IIF:
+        n +=[_tok(), _toki(I.PARENTH_1), _condition(), _toki(I.COMMA), _expression(), _toki(I.COMMA), _expression(), _toki(I.PARENTH_2)]
+    elif Tok.i in(I.LEFT, I.RIGHT, I.NULLIF):
+        n +=[_tok(), _toki(I.PARENTH_1), _expression(), _toki(I.COMMA), _expression(), _toki(I.PARENTH_2)]
+    elif Tok.t == Ty.IDENTIFIER or Tok.i in(I.LEFT, I.RIGHT, I.NULLIF, I.COALESCE):
+        n +=[_tok(), _toki(I.PARENTH_1)]
+        if Tok.i != I.PARENTH_2:
+            if Tok.i  == I.DISTINCT:
+                n.append(_tok())
+                distinct = True
+            n.append(_list(_parameter, N.argument_list))
+        n.append(_toki(I.PARENTH_2))
     else:
-        n +=[_ttok(Ty.IDENTIFIER), _itok(I.PARENTH_1), _list(_primary_expression, N.primitive_value_list), _itok(I.PARENTH_2)]
+        return
 
     if Tok.i == I.OVER:
         if distinct:
@@ -220,7 +260,7 @@ def _function_call():
 
 def _collate():
     n = Node(N.collate)
-    n +=[_tok(), _ttok(Ty.IDENTIFIER)]
+    n +=[_tok(), _tokt(Ty.IDENTIFIER)]
     return n
 
 def _primary_expression():
@@ -231,10 +271,10 @@ def _primary_expression():
          return p
     elif Tok.i == I.PARENTH_1:
         if matchxi(I.SELECT, I.INSERT, I.UPDATE, I.DELETE, off=1):
-            p+=[_itok(I.PARENTH_1), _select(), _itok(I.PARENTH_2)]
+            p+=[_toki(I.PARENTH_1), _query_expression(), _toki(I.PARENTH_2)]
             return p
         else:
-            p+=[_itok(I.PARENTH_1), _expression(), _itok(I.PARENTH_2)]
+            p+=[_toki(I.PARENTH_1), _expression(), _toki(I.PARENTH_2)]
             return p
     elif Tok.t in (Ty.INTEGER, Ty.DECIMAL, Ty.DELIMITED_LITERAL):
         p+=[_tok()]
@@ -242,10 +282,10 @@ def _primary_expression():
     elif Tok.i in(I.CURRENT_DATE, I.CURRENT_TIME, I.CURRENT_TIMESTAMP, I.CURRENT_USER):
         p+=[_tok()]
         return p
-    elif Tok.t == Ty.IDENTIFIER:
-        if matchi(I.PARENTH_1, off=1):
-            p+=_function_call()
-            return p
+    elif f:=_if_function_call():
+        p+=f
+        return p
+    elif Tok.t == Ty.IDENTIFIER or Tok.i == I.NULL:
         p+=[_tok()]
         return p
     error('Value or expression expected.')
@@ -268,14 +308,14 @@ def _primary_condition():
             return n
         case I.EXISTS | I.NOT_EXISTS:
             n = Node(N.exists_condition) 
-            n += [_tok(), _itok(I.PARENTH_1), _select(), _itok(I.PARENTH_2)]
+            n += [_tok(), _toki(I.PARENTH_1), _query_expression(), _toki(I.PARENTH_2)]
             return n
         case I.PARENTH_1:
             if not matchxi(I.SELECT, I.INSERT, I.UPDATE, I.DELETE, off=1):
                 start_idx = Tok.idx
                 try:
                     n = Node(N.condition)
-                    n += [_itok(I.PARENTH_1), _condition(), _itok(I.PARENTH_2)]
+                    n += [_toki(I.PARENTH_1), _condition(), _toki(I.PARENTH_2)]
                     return n
                 except: pass
                 # Backtrack
@@ -294,15 +334,15 @@ def _primary_condition():
             return n
         case I.BETWEEN | I.NOT_BETWEEN:
             n = Node(N.between_condition)
-            n += [left_expr, _tok(), _expression(), _itok(I.AND), _expression()]
+            n += [left_expr, _tok(), _expression(), _toki(I.AND), _expression()]
             return n
         case I.IN | I.NOT_IN:
             cond = Node(N.in_condition)
             op = _tok()
             if matchxi(I.SELECT, I.INSERT, I.UPDATE, I.DELETE, off=1):
-                cond += [left_expr, op, _itok(I.PARENTH_1), _select(), _itok(I.PARENTH_2)]
+                cond += [left_expr, op, _toki(I.PARENTH_1), _query_expression(), _toki(I.PARENTH_2)]
             else:
-                cond += [left_expr, op, _itok(I.PARENTH_1), _list(_expression, N.value_expression_list), _itok(I.PARENTH_2)]
+                cond += [left_expr, op, _toki(I.PARENTH_1), _list(_expression, N.value_expression_list), _toki(I.PARENTH_2)]
             return cond
     
     error('Logical operator expected.')
@@ -316,21 +356,23 @@ def _condition():
 
 def _case():
     n = Node(N.case_expresion)
-    n.append(_itok(I.CASE))
+    n.append(_toki(I.CASE))
     if Tok.i == I.WHEN: 
         fn = _condition  
     else:
         n.append(_expression())
         fn = _expression
-    while Tok.i == I.WHEN: n += [_itok(I.WHEN), fn(), _itok(I.THEN), _expression()]
-    if Tok.i == I.ELSE: n += [_itok(I.ELSE), _expression()]
-    n += [_itok(I.END)]
+    while Tok.i == I.WHEN: n += [_toki(I.WHEN), fn(), _toki(I.THEN), _expression()]
+    if Tok.i == I.ELSE: n += [_toki(I.ELSE), _expression()]
+    n += [_toki(I.END)]
     return n
 
 def _select_column():
     n = Node(N.select_column)
     if Tok.i == I.OP_MUL: # Tok.i == '*'
         n.append(_tok())
+    elif Tok.t == Ty.IDENTIFIER and matchi(I.DOT, off=1) and matchi(I.OP_MUL, off=2):
+        n += [_tok(), _tok(), _tok()]
     elif Tok.t == Ty.IDENTIFIER and matchi(I.EQ, off=1): # Case: alias = expr
         n += [_tok(), _tok()]
         n.append(_expression())
@@ -348,41 +390,41 @@ def _list(fn, node_type:N):
 
 def _if_alias():
     n = Node(N.alias)
-    if Tok.i == I.AS: n+=[_tok(), _ttok(Ty.IDENTIFIER)]; return n
-    elif Tok.t == Ty.IDENTIFIER: n.append(_tok()); return n
+    if Tok.i == I.AS: n+=[_tok(), _tokxt(Ty.IDENTIFIER, Ty.DELIMITED_LITERAL)]; return n
+    elif Tok.t in (Ty.IDENTIFIER, Ty.DELIMITED_LITERAL): n.append(_tok()); return n
     else: return None
 
 def _rowset_function():
     n = Node(N.rowset_function)
     match Tok.i:
-        case I.OPENROWSET: n+=[_tok(), _itok(I.PARENTH_1), _ttok(Ty.DELIMITED_LITERAL), _itok(I.COMMA), _ttok(Ty.DELIMITED_LITERAL), _itok(I.COMMA), _ttok(Ty.DELIMITED_LITERAL), _itok(I.PARENTH_2)]
-        case I.OPENQUERY: n+=[_tok(), _itok(I.PARENTH_1), _ttok(Ty.IDENTIFIER), _itok(I.COMMA), _ttok(Ty.DELIMITED_LITERAL), _itok(I.PARENTH_2)]
-        case I.OPENDATASOURCE: n+=[_tok(), _itok(I.PARENTH_1), _ttok(Ty.DELIMITED_LITERAL), _itok(I.COMMA), _ttok(Ty.DELIMITED_LITERAL), _itok(I.PARENTH_2)]
+        case I.OPENROWSET: n+=[_tok(), _toki(I.PARENTH_1), _tokt(Ty.DELIMITED_LITERAL), _toki(I.COMMA), _tokt(Ty.DELIMITED_LITERAL), _toki(I.COMMA), _tokt(Ty.DELIMITED_LITERAL), _toki(I.PARENTH_2)]
+        case I.OPENQUERY: n+=[_tok(), _toki(I.PARENTH_1), _tokt(Ty.IDENTIFIER), _toki(I.COMMA), _tokt(Ty.DELIMITED_LITERAL), _toki(I.PARENTH_2)]
+        case I.OPENDATASOURCE: n+=[_tok(), _toki(I.PARENTH_1), _tokt(Ty.DELIMITED_LITERAL), _toki(I.COMMA), _tokt(Ty.DELIMITED_LITERAL), _toki(I.PARENTH_2)]
 
     if a:=_if_alias(): n.append(a)
     return n
 
 def _schema_column_declaration():
     n = Node(N.schema_column_declaration)
-    n+=[_ttok(Ty.IDENTIFIER), _datatype()]
+    n+=[_tokt(Ty.IDENTIFIER), _datatype()]
     return n
 
 def _openxml():
     n = Node(N.openxml)
-    n += [_tok(), _itok(I.PARENTH_1)]
+    n += [_tok(), _toki(I.PARENTH_1)]
     aux = inspect()
     if not aux or aux.value[0]!='@':
         error("Variable expected.")
-    n+=[_tok(), _itok(I.COMMA), _ttok(Ty.DELIMITED_LITERAL)]
-    if Tok.i == I.COMMA: n+=[_tok(), _ttok(Ty.INTEGER)]
-    n+=[_itok(I.PARENTH_2), _itok(I.WITH), _itok(I.PARENTH_1)]
+    n+=[_tok(), _toki(I.COMMA), _tokt(Ty.DELIMITED_LITERAL)]
+    if Tok.i == I.COMMA: n+=[_tok(), _tokt(Ty.INTEGER)]
+    n+=[_toki(I.PARENTH_2), _toki(I.WITH), _toki(I.PARENTH_1)]
     if Tok.t != Ty.IDENTIFIER:
         error("Identifier expected.")
     elif matchi(I.PARENTH_2, off=1):
         n.append(_tok())
     else:
         n.append(_list(_schema_column_declaration, N.schema_column_list))
-    n.append(_itok(I.PARENTH_2))
+    n.append(_toki(I.PARENTH_2))
     if (a:=_if_alias()): n.append(a)
     return n
 
@@ -393,22 +435,22 @@ def _json_coldef():
 
 def _openjson():
     n = Node(N.openjson)
-    n += [_tok(), _itok(I.PARENTH_1), _xttok(Ty.IDENTIFIER, Ty.DELIMITED_LITERAL)]
-    if Tok.i == I.COMMA: n+=[_tok(), _ttok(Ty.DELIMITED_LITERAL)]
-    n.append(_itok(I.PARENTH_2))
+    n += [_tok(), _toki(I.PARENTH_1), _tokxt(Ty.IDENTIFIER, Ty.DELIMITED_LITERAL)]
+    if Tok.i == I.COMMA: n+=[_tok(), _tokt(Ty.DELIMITED_LITERAL)]
+    n.append(_toki(I.PARENTH_2))
     if Tok.i == I.WITH:
-        n+=[_tok(), _itok(I.PARENTH_1), _list(_json_coldef, N.schema_column_list), _itok(I.PARENTH_2)]
+        n+=[_tok(), _toki(I.PARENTH_1), _list(_json_coldef, N.schema_column_list), _toki(I.PARENTH_2)]
     if (a:=_if_alias()): n.append(a)
     return n
 
 def _tuple():
     n = Node(N.tuple)
-    n += [_itok(I.PARENTH_1), _list(_expression, N.value_expression_list), _itok(I.PARENTH_2)]
+    n += [_toki(I.PARENTH_1), _list(_expression, N.value_expression_list), _toki(I.PARENTH_2)]
     return n
 
 def _derived_table():
     n = Node(N.derived_table)
-    n+=[_tok(), _select(), _itok(I.PARENTH_2)]
+    n+=[_tok(), _query_expression(), _toki(I.PARENTH_2)]
     if (a:=_if_alias()): 
         n.append(a)
     else:
@@ -417,29 +459,36 @@ def _derived_table():
 
 def _table_value_construct():
     n = Node(N.table_value_constructor)
-    n+=[_tok(), _tok(), _list(_tuple, N.tuple_list), _itok(I.PARENTH_2)]
+    n+=[_tok(), _tok(), _list(_tuple, N.tuple_list), _toki(I.PARENTH_2)]
     if (a:=_if_alias()): 
-        n+=[a, _itok(I.PARENTH_1), _column_list(), _itok(I.PARENTH_2)]
+        n+=[a, _toki(I.PARENTH_1), _column_list(), _toki(I.PARENTH_2)]
     else:
         error('Alias expected')
     return n
     
 def _column_list():
     n = Node(N.column_list)
-    n.append(_ttok(Ty.IDENTIFIER))
+    n.append(_tokt(Ty.IDENTIFIER))
     while Tok.i == I.COMMA:
-        n += [_tok(), _ttok(Ty.IDENTIFIER)]
+        n += [_tok(), _tokt(Ty.IDENTIFIER)]
     return n
 
 def _pivot_clause():
     n = Node(N.pivot_clause)
-    n+=[_itok(I.PARENTH_1), _xitok(I.AVG, I.COUNT, I.SUM, I.MIN, I.MAX), _itok(I.PARENTH_1), _ttok(Ty.IDENTIFIER), _itok(I.PARENTH_2)
-        , _itok(I.FOR), _ttok(Ty.IDENTIFIER), _itok(I.IN), _itok(I.PARENTH_1), _column_list(), _itok(I.PARENTH_2), _itok(I.PARENTH_2)]
+    n+=[_toki(I.PARENTH_1), _tokxi(I.AVG, I.COUNT, I.SUM, I.MIN, I.MAX), _toki(I.PARENTH_1), _tokt(Ty.IDENTIFIER), _toki(I.PARENTH_2)
+        , _toki(I.FOR), _tokt(Ty.IDENTIFIER), _toki(I.IN), _toki(I.PARENTH_1), _column_list(), _toki(I.PARENTH_2), _toki(I.PARENTH_2)]
     return n
 
 def _unpivot_clause():
     n = Node(N.unpivot_clause)
-    n+=[_itok(I.PARENTH_1), _ttok(Ty.IDENTIFIER), _itok(I.FOR), _ttok(Ty.IDENTIFIER), _itok(I.IN), _itok(I.PARENTH_1), _column_list(), _itok(I.PARENTH_2), _itok(I.PARENTH_2)]
+    n+=[_toki(I.PARENTH_1), _tokt(Ty.IDENTIFIER), _toki(I.FOR), _tokt(Ty.IDENTIFIER), _toki(I.IN), _toki(I.PARENTH_1), _column_list(), _toki(I.PARENTH_2), _toki(I.PARENTH_2)]
+    return n
+
+def _table_hint():
+    n = Node(N.table_hint)
+    if Tok.i == I.WITH:
+        n.append(_tok())
+    n +=[_toki(I.PARENTH_1), _tokt(Ty.IDENTIFIER), _toki(I.PARENTH_2)]
     return n
 
 def _table_or_view_name():
@@ -447,13 +496,16 @@ def _table_or_view_name():
     n.append(_tok())
     if(a:=_if_alias()):
         n.append(a)
-    if Tok.i == I.WITH:
-        n+=[_tok(), _itok(I.PARENTH_1), _ttok(Ty.IDENTIFIER), _itok(I.PARENTH_2)]
+    if Tok.i in(I.WITH, I.PARENTH_1):
+        n.append(_table_hint())
     return n
 
 def _udf_table():
     n = Node(N.user_defined_function)
-    n += [_tok(), _tok(), _list(_primary_expression, N.argument_list), _itok(I.PARENTH_2)]
+    n += [_tok(), _tok()]
+    if Tok.i != I.PARENTH_2:
+        n.extend(_list(_parameter, N.argument_list))
+    n.append(_toki(I.PARENTH_2))
     if(a:=_if_alias()): n.append(a)
     return n
 
@@ -468,7 +520,7 @@ def _table_source():
     elif Tok.i == I.PARENTH_1 and matchi(I.VALUES, off=1): left.append(_table_value_construct())
     elif Tok.i == I.PARENTH_1: 
         p = Node(N.parenthesized_table_source)
-        p += [_tok(), _table_source(), _itok(I.PARENTH_2)]
+        p += [_tok(), _table_source(), _toki(I.PARENTH_2)]
         left.append(p)
     else: error("Table source expected.")
 
@@ -486,7 +538,7 @@ def _table_source():
                 if a:=_if_alias(): n.append(a)
                 left += n    
             case I.JOIN | I.INNER_JOIN | I.LEFT_JOIN | I.RIGHT_JOIN | I.FULL_JOIN | I.LEFT_OUTER_JOIN | I.RIGHT_OUTER_JOIN | I.FULL_OUTER_JOIN:
-                left += [_tok(), _table_source(), _itok(I.ON), _condition()]
+                left += [_tok(), _table_source(), _toki(I.ON), _condition()]
             case I.CROSS_JOIN | I.CROSS_APPLY | I.OUTER_APPLY:
                 left += [_tok(), _table_source()]
         
@@ -494,7 +546,7 @@ def _table_source():
 
 def _from():
     n = Node(N.from_clause)
-    n.append(_itok(I.FROM))
+    n.append(_toki(I.FROM))
     n.extend(_list(_table_source, N.table_source_list))
     return n
 
@@ -513,18 +565,24 @@ def _having():
     n+=[_tok(), _condition()]
     return n
 
+def _order_by_expression():
+    n = _expression()
+    if Tok.i in(I.ASC, I.DESC):
+        n.append(_tok())
+    return n
+
 def _order_by():
     n = Node(N.order_by_clause)
-    n+=[_tok(), _list(_expression, N.value_expression_list)]
+    n+=[_tok(), _list(_order_by_expression, N.value_expression_list)]
     if Tok.i == I.OFFSET:
-        n+=[_tok(), _expression(), _itok((I.ROW, I.ROWS))]
+        n+=[_tok(), _expression(), _toki((I.ROW, I.ROWS))]
         if Tok.i == I.FETCH:
-            n+=[_tok(), _expression(), _itok((I.ROW, I.ROWS)), _itok(I.ONLY)]
+            n+=[_tok(), _expression(), _toki((I.ROW, I.ROWS)), _toki(I.ONLY)]
     return n
 
 def _for_directive_name():
     n = Node(N.for_directive_name)
-    n += [_itok(I.PARENTH_1), _ttok(Ty.DELIMITED_LITERAL), _itok(I.PARENTH_2)]
+    n += [_toki(I.PARENTH_1), _tokt(Ty.DELIMITED_LITERAL), _toki(I.PARENTH_2)]
     return n
 
 def _for_directive(words, name=False):
@@ -610,7 +668,7 @@ def _for():
 
 def _top():
     n = Node(N.top_clause)
-    n+=[_itok(I.TOP), _primary_expression()]
+    n+=[_toki(I.TOP), _primary_expression()]
     if Tok.i == I.PERCENT: n.append(_tok())
     if Tok.i == I.WITH and matchi(I.TIES, off=1):
         n+=[_tok(), _tok()]
@@ -618,21 +676,31 @@ def _top():
 
 def _select_clause():
     n = Node(N.select_clause)
-    n.append(_itok(I.SELECT))
+    n.append(_toki(I.SELECT))
     if Tok.i in (I.ALL, I.DISTINCT):
         n.append(_tok())
     if Tok.i == I.TOP: n.append(_top())
     n.append(_list(_select_column, N.column_list))
     return n
 
-def _select():
-    n = Node(N.select_statemet)
+def _query_specification():
+    n = Node(N.query_especification)
     n.append(_select_clause())
-    if Tok.i == I.INTO: n+=[_tok(), _ttok(Ty.IDENTIFIER)]
+    if Tok.i == I.INTO: n+=[_tok(), _tokt(Ty.IDENTIFIER)]
     if Tok.i == I.FROM: n.append(_from())
     if Tok.i == I.WHERE: n.append(_where())
     if Tok.i == I.GROUP_BY: n.append(_group_by())
     if Tok.i == I.HAVING: n.append(_having())
     if Tok.i == I.ORDER_BY: n.append(_order_by())
     if Tok.i == I.FOR:  n.append(_for())
+    return n
+
+def _query_expression():
+    n = Node(N.query_especification)
+    n.append(_query_specification())
+    while Tok.i in (I.UNION, I.INTERSECT, I.EXCEPT):
+        n.append(_tok())
+        if Tok.i == I.ALL:
+            n.append(_tok())
+        n.append(_query_specification())
     return n

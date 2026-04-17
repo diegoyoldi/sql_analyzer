@@ -1,6 +1,6 @@
 import string
 from typing import Iterator, List
-from tokenizer import Token, tokenize, EnumTokenType
+from tokenizer import Token, tokenize, EnumTokenType, Mask
 from enum import IntEnum, auto
 
 class EnumValueId(IntEnum):
@@ -251,11 +251,16 @@ class EnumValueId(IntEnum):
 	ONLY = auto()
 	TIES = auto()
 	CAST = auto()
+	TRY_CAST = auto()
+	PARSE = auto()
+	TRY_PARSE = auto()
+	USING = auto()
 	AVG = auto()
 	COUNT = auto()
 	SUM = auto()
 	MIN = auto()
 	MAX = auto()
+	IIF = auto()
 
 	# Data types - Exact
 	TINYINT = auto()
@@ -587,11 +592,16 @@ value_hash = {
 	'ONLY': EnumValueId.ONLY,
 	'TIES': EnumValueId.TIES,
 	'CAST': EnumValueId.CAST,
+	'TRY_CAST': EnumValueId.TRY_CAST,
+	'PARSE': EnumValueId.PARSE,
+	'TRY_PARSE': EnumValueId.TRY_PARSE,
+	'USING': EnumValueId.USING,
 	'AVG': EnumValueId.AVG,
 	'COUNT': EnumValueId.COUNT,
 	'SUM': EnumValueId.SUM,
 	'MIN': EnumValueId.MIN,
 	'MAX': EnumValueId.MAX,
+	'IIF':EnumValueId.IIF,
 	'TINYINT': EnumValueId.TINYINT,
 	'SMALLINT': EnumValueId.SMALLINT,
 	'INT': EnumValueId.INT,
@@ -872,6 +882,8 @@ _KEYWORDS_3 = {
     (EnumValueId.FULL, EnumValueId.OUTER, EnumValueId.JOIN): ['FULL OUTER JOIN', EnumValueId.FULL_OUTER_JOIN],
     (EnumValueId.IS, EnumValueId.NOT, EnumValueId.NULL): ['IS NOT NULL', EnumValueId.IS_NOT_NULL],
 }
+
+# _KEYWORD_IDS = frozenset(list(_KEYWORDS_1)+[v[1]for v in (_KEYWORDS_2|_KEYWORDS_3).values()])
 
 def split_batches(sql: str, batch_separator: str = 'GO') -> List[str]:
 	"""
