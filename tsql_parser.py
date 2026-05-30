@@ -55,6 +55,7 @@ class N(IntEnum):
     unpivot_clause = auto()
     table_or_view_name = auto()
     table_hint = auto()
+    table_hint_list = auto()
     user_defined_function = auto()
     table_source = auto()
     parenthesized_table_source = auto()
@@ -82,6 +83,8 @@ class N(IntEnum):
     table_source_list = auto()
     argument_list = auto()
     for_directive_name = auto()
+    table_hint_index_list = auto()
+    identifier_list = auto()
 
 class Node(list):
     def __init__(self, type:str):
@@ -264,30 +267,30 @@ def _collate():
     return n
 
 def _primary_expression():
-    p = Node(N.primary_expression)
-    while Tok.i in(I.OP_ADD, I.OP_SUB): p.append(_tok())
+    n = Node(N.primary_expression)
+    while Tok.i in(I.OP_ADD, I.OP_SUB): n.append(_tok())
     if Tok.i == I.CASE: 
-         p+=_case()
-         return p
+         n+=_case()
+         return n
     elif Tok.i == I.PARENTH_1:
         if matchxi(I.SELECT, I.INSERT, I.UPDATE, I.DELETE, off=1):
-            p+=[_toki(I.PARENTH_1), _query_expression(), _toki(I.PARENTH_2)]
-            return p
+            n+=[_toki(I.PARENTH_1), _query_expression(), _toki(I.PARENTH_2)]
+            return n
         else:
-            p+=[_toki(I.PARENTH_1), _expression(), _toki(I.PARENTH_2)]
-            return p
+            n+=[_toki(I.PARENTH_1), _expression(), _toki(I.PARENTH_2)]
+            return n
     elif Tok.t in (Ty.INTEGER, Ty.DECIMAL, Ty.DELIMITED_LITERAL):
-        p+=[_tok()]
-        return p
+        n+=[_tok()]
+        return n
     elif Tok.i in(I.CURRENT_DATE, I.CURRENT_TIME, I.CURRENT_TIMESTAMP, I.CURRENT_USER):
-        p+=[_tok()]
-        return p
+        n+=[_tok()]
+        return n
     elif f:=_if_function_call():
-        p+=f
-        return p
+        n+=f
+        return n
     elif Tok.t == Ty.IDENTIFIER or Tok.i == I.NULL:
-        p+=[_tok()]
-        return p
+        n+=[_tok()]
+        return n
     error('Value or expression expected.')
 
 def _expression():
@@ -486,9 +489,20 @@ def _unpivot_clause():
 
 def _table_hint():
     n = Node(N.table_hint)
-    if Tok.i == I.WITH:
+    if Tok.i == I.INDEX:
         n.append(_tok())
-    n +=[_toki(I.PARENTH_1), _tokt(Ty.IDENTIFIER), _toki(I.PARENTH_2)]
+        if Tok.i == I.EQ:
+            n+=[_tok(), _tokt(Ty.IDENTIFIER)]
+        else:
+            n+=[_toki(I.PARENTH_1), _list(lambda:_tokxt(Ty.IDENTIFIER, Ty.INTEGER), N.table_hint_index_list), _toki(I.PARENTH_2)]
+    elif Tok.i == I.FORCESEEK:
+        n.append(_tok())
+        if Tok.i == I.PARENTH_1:
+            n+=[_toki(I.PARENTH_1), _tokt(Ty.IDENTIFIER), _toki(I.PARENTH_1), _list(lambda:_tokt(Ty.IDENTIFIER), N.identifier_list) ,_toki(I.PARENTH_2), _toki(I.PARENTH_2)]
+    elif Tok.i == I.SPATIAL_WINDOW_MAX_CELLS:
+        n+=[_tok(), _toki(I.EQ), _tokt(Ty.INTEGER)]            
+    else:
+        n.append(_tokt(Ty.IDENTIFIER))
     return n
 
 def _table_or_view_name():
@@ -497,7 +511,9 @@ def _table_or_view_name():
     if(a:=_if_alias()):
         n.append(a)
     if Tok.i in(I.WITH, I.PARENTH_1):
-        n.append(_table_hint())
+        if Tok.i == I.WITH:
+            n.append(_tok())
+        n+=[_toki(I.PARENTH_1), _list(_table_hint, N.table_hint_list), _toki(I.PARENTH_2)]
     return n
 
 def _udf_table():

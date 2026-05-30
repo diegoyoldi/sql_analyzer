@@ -261,6 +261,8 @@ class EnumValueId(IntEnum):
 	MIN = auto()
 	MAX = auto()
 	IIF = auto()
+	FORCESEEK = auto()
+	SPATIAL_WINDOW_MAX_CELLS = auto()
 
 	# Data types - Exact
 	TINYINT = auto()
@@ -602,6 +604,8 @@ value_hash = {
 	'MIN': EnumValueId.MIN,
 	'MAX': EnumValueId.MAX,
 	'IIF':EnumValueId.IIF,
+	'FORCESEEK': EnumValueId.FORCESEEK,
+	'SPATIAL_WINDOW_MAX_CELLS': EnumValueId.SPATIAL_WINDOW_MAX_CELLS,
 	'TINYINT': EnumValueId.TINYINT,
 	'SMALLINT': EnumValueId.SMALLINT,
 	'INT': EnumValueId.INT,
